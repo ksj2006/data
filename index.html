@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f2eb">
+  <title>禾日食堂｜候位登記</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202a25;
+      --muted: #68746c;
+      --paper: #f4f2eb;
+      --surface: #fffefa;
+      --line: #dedfd6;
+      --green: #315c48;
+      --green-dark: #244735;
+      --lime: #d9e6a5;
+      --coral: #d86f50;
+      --soft-green: #e9efe6;
+      --shadow: 0 18px 50px rgba(36, 55, 44, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 72px;
+      padding: 0 max(24px, calc((100vw - 1180px) / 2));
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 254, 250, 0.84);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; }
+    .brand-mark {
+      display: grid;
+      width: 36px;
+      aspect-ratio: 1;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--surface);
+      background: var(--green);
+      font-family: Georgia, serif;
+      font-size: 1.25rem;
+    }
+    .brand small { display: block; margin-top: 2px; color: var(--muted); font-size: 0.7rem; font-weight: 500; }
+    .open-state { display: flex; align-items: center; gap: 8px; color: var(--green); font-size: 0.82rem; font-weight: 700; }
+    .open-dot { width: 8px; height: 8px; border-radius: 50%; background: #6b9c62; box-shadow: 0 0 0 4px #e8f0df; }
+    main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 56px; }
+    .welcome {
+      position: relative;
+      display: flex;
+      min-height: 218px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      overflow: hidden;
+      padding: 32px clamp(24px, 5vw, 58px);
+      color: #fffefa;
+      background: var(--green);
+      isolation: isolate;
+    }
+    .welcome::before, .welcome::after { position: absolute; z-index: -1; content: ""; border: 1px solid rgba(237, 242, 215, 0.22); border-radius: 50%; }
+    .welcome::before { width: 390px; height: 390px; right: 11%; top: -240px; }
+    .welcome::after { width: 270px; height: 270px; right: 18%; bottom: -205px; }
+    .welcome-copy { max-width: 600px; animation: arrive 600ms ease-out both; }
+    .eyebrow { margin: 0 0 12px; color: var(--lime); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; }
+    h1 { margin: 0; font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(2rem, 4vw, 3.15rem); line-height: 1.16; letter-spacing: 0; }
+    .welcome p:last-child { margin: 12px 0 0; color: #e2e9dd; font-size: 0.93rem; }
+    .welcome-art { position: relative; display: grid; flex: 0 0 150px; width: 150px; aspect-ratio: 1; place-items: center; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; background: rgba(255,255,255,.08); font-size: 4.5rem; animation: arrive 750ms 100ms ease-out both; }
+    .welcome-art::after { position: absolute; inset: 12px; border: 1px dashed rgba(255,255,255,.34); border-radius: 50%; content: ""; }
+    .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; margin-top: 28px; }
+    .queue-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr); gap: 28px; align-items: start; margin-top: 28px; }
+    .queue-panel { padding: 26px; }
+    .queue-form { display: grid; max-width: 520px; gap: 16px; margin-top: 22px; }
+    .queue-position { margin: 0; padding: 13px 15px; border-left: 3px solid var(--coral); color: var(--ink); background: #f7eee8; font-size: 0.88rem; }
+    .queue-list { display: grid; max-height: 420px; gap: 0; overflow-y: auto; margin: 14px 0 0; padding: 0; list-style: none; }
+    .queue-item { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 2px; border-bottom: 1px solid #ecece5; }
+    .queue-number { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--line); color: var(--green); font-size: 0.78rem; font-weight: 800; }
+    .queue-name { font-size: 0.9rem; font-weight: 700; }
+    .queue-phone { display: block; margin-top: 4px; color: var(--muted); font-size: 0.78rem; font-weight: 400; }
+    .queue-empty { padding: 22px 0; color: var(--muted); font-size: 0.88rem; }
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+    h2 { margin: 0; font-size: 1.2rem; }
+    .section-heading span, .subtle { color: var(--muted); font-size: 0.8rem; }
+    .menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .dish {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      min-height: 130px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      transition: border-color 160ms ease, transform 160ms ease;
+    }
+    .dish:hover { transform: translateY(-2px); border-color: #9eae9d; }
+    .dish-visual { display: grid; min-height: 130px; place-items: center; background: var(--soft-green); font-size: 2.65rem; }
+    .dish:nth-child(2) .dish-visual { background: #f3e9d7; }
+    .dish:nth-child(3) .dish-visual { background: #f1e7df; }
+    .dish:nth-child(4) .dish-visual { background: #e3eceb; }
+    .dish-content { display: flex; flex-direction: column; align-items: flex-start; padding: 13px 13px 12px; }
+    .dish-content h3 { margin: 0; font-size: 0.96rem; }
+    .dish-content p { margin: 5px 0 11px; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
+    .dish-bottom { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+    .price { color: var(--green); font-size: 0.9rem; font-weight: 800; }
+    .add-button { display: grid; width: 31px; height: 31px; place-items: center; border: 0; border-radius: 50%; color: white; background: var(--green); font-size: 1.2rem; transition: background 140ms ease, transform 140ms ease; }
+    .add-button:hover { transform: scale(1.08); background: var(--green-dark); }
+    .side-column { display: grid; gap: 16px; }
+    .panel { border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
+    .order-panel { padding: 20px; }
+    .cart-empty { padding: 20px 0 10px; color: var(--muted); font-size: 0.88rem; text-align: center; }
+    .cart-list { display: grid; gap: 12px; margin: 16px 0; padding: 0; list-style: none; }
+    .cart-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 12px; font-size: 0.85rem; }
+    .cart-row small { color: var(--muted); }
+    .quantity { display: flex; align-items: center; gap: 8px; }
+    .quantity button { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid var(--line); color: var(--ink); background: transparent; }
+    .total-row { display: flex; justify-content: space-between; padding-top: 13px; border-top: 1px solid var(--line); font-size: 0.92rem; font-weight: 800; }
+    .customer-form { display: grid; gap: 12px; margin-top: 18px; }
+    .field { display: grid; gap: 6px; }
+    .field label { font-size: 0.79rem; font-weight: 700; }
+    .field input { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #cfd4ca; border-radius: 0; outline: none; color: var(--ink); background: white; }
+    .field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(49, 92, 72, 0.12); }
+    .submit-button { min-height: 46px; border: 0; color: white; background: var(--coral); font-size: 0.9rem; font-weight: 800; transition: background 140ms ease; }
+    .submit-button:hover { background: #bd5c41; }
+    .submit-button:disabled { cursor: not-allowed; opacity: 0.5; }
+    .privacy-note { margin: 0; color: var(--muted); font-size: 0.7rem; line-height: 1.5; }
+    .notice { min-height: 1.2em; margin: 0; color: var(--green); font-size: 0.8rem; font-weight: 700; }
+    .stack-panel { padding: 18px 20px 14px; }
+    .stack-topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 10px; padding: 10px 12px; border-left: 3px solid var(--coral); background: #f7eee8; }
+    .stack-topline span { color: var(--muted); font-size: 0.74rem; }
+    .stack-list { display: grid; max-height: 210px; gap: 0; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+    .stack-item { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 9px; padding: 10px 2px; border-bottom: 1px solid #ecece5; }
+    .stack-number { display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid var(--line); color: var(--muted); font-size: 0.7rem; }
+    .stack-name { font-size: 0.82rem; font-weight: 700; }
+    .stack-phone { display: block; margin-top: 3px; color: var(--muted); font-size: 0.72rem; font-weight: 400; }
+    .stack-badge { color: var(--green); font-size: 0.65rem; font-weight: 800; }
+    .stack-empty { padding: 12px 0 6px; color: var(--muted); font-size: 0.8rem; }
+    .stack-actions { display: flex; justify-content: flex-end; gap: 14px; margin-top: 12px; }
+    .text-button { padding: 5px 0; border: 0; color: var(--muted); background: transparent; font-size: 0.73rem; text-decoration: underline; text-underline-offset: 3px; }
+    .text-button:hover { color: var(--green); }
+    footer { padding: 22px 0 0; color: var(--muted); font-size: 0.72rem; text-align: center; }
+    @keyframes arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 880px) { .content-grid { grid-template-columns: minmax(0, 1fr) 310px; gap: 18px; } .queue-layout { grid-template-columns: 1fr; gap: 18px; } .menu-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 680px) {
+      .topbar { min-height: 62px; padding: 0 20px; }
+      main { width: min(100% - 28px, 520px); padding-top: 18px; }
+      .welcome { min-height: 190px; padding: 25px 22px; }
+      .welcome-art { flex-basis: 88px; width: 88px; font-size: 2.8rem; }
+      .content-grid, .queue-layout { grid-template-columns: 1fr; gap: 20px; margin-top: 20px; }
+      .queue-panel { padding: 20px; }
+      .menu-grid { grid-template-columns: 1fr; }
+      .dish { grid-template-columns: 88px minmax(0, 1fr); }
+      .dish-visual { min-height: 120px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">禾</span><span>禾日食堂<small>H E R I  K I T C H E N</small></span></div>
+    <div class="open-state"><span class="open-dot" aria-hidden="true"></span>候位登記開放</div>
+  </header>
+
+  <main>
+    <section class="welcome" aria-labelledby="page-title">
+      <div class="welcome-copy">
+        <p class="eyebrow">WELCOME, TAKE YOUR TIME</p>
+        <h1 id="page-title">候位，從容一點。</h1>
+        <p>留下稱呼與電話，輪到時我們會聯絡你。</p>
+      </div>
+      <div class="welcome-art" aria-hidden="true">☕</div>
+    </section>
+
+    <div class="queue-layout">
+      <section class="panel queue-panel" aria-labelledby="queue-form-title">
+        <div class="section-heading"><h2 id="queue-form-title">加入候位</h2><span>填寫兩項資料即可</span></div>
+        <form class="queue-form" id="queue-form">
+          <div class="field"><label for="guest-name">稱呼</label><input id="guest-name" name="name" type="text" autocomplete="name" placeholder="怎麼稱呼你？" maxlength="40" required></div>
+          <div class="field"><label for="guest-phone">電話</label><input id="guest-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="例：0912-345-678" maxlength="20" required></div>
+          <p class="privacy-note">送出後會將稱呼與電話保存在此瀏覽器，依登記順序安排候位。請勿在公用裝置使用。</p>
+          <button class="submit-button" type="submit">加入候位</button>
+          <p class="notice" id="notice" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="panel queue-panel" aria-labelledby="queue-title">
+        <div class="section-heading"><h2 id="queue-title">目前候位</h2><span id="queue-count">0 位</span></div>
+        <p class="queue-position" id="queue-position">目前沒有候位者</p>
+        <ol class="queue-list" id="queue-list" aria-live="polite"></ol>
+        <div class="stack-actions"><button class="text-button" id="serve-next" type="button">完成下一位</button><button class="text-button" id="clear-queue" type="button">清空候位</button></div>
+      </section>
+    </div>
+    <footer>禾日食堂・期待與你相見。</footer>
+  </main>
+
+  <script>
+    const QUEUE_KEY = "heri-waitlist-v1";
+    let waitlist = readStoredQueue();
+    const queueList = document.querySelector("#queue-list");
+    const notice = document.querySelector("#notice");
+
+    function readStoredQueue() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+        return Array.isArray(saved) ? saved.filter((entry) => entry && typeof entry.name === "string" && typeof entry.phone === "string") : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveQueue() {
+      try {
+        localStorage.setItem(QUEUE_KEY, JSON.stringify(waitlist));
+      } catch {
+        notice.textContent = "瀏覽器未能儲存候位紀錄；本次頁面仍會顯示紀錄。";
+      }
+    }
+
+    function renderQueue() {
+      document.querySelector("#queue-count").textContent = `${waitlist.length} 位`;
+      document.querySelector("#queue-position").textContent = waitlist.length ? `目前共有 ${waitlist.length} 位候位，依登記順序安排。` : "目前沒有候位者";
+      if (!waitlist.length) {
+        queueList.innerHTML = '<li class="queue-empty">候位名單目前是空的。</li>';
+        return;
+      }
+
+      queueList.innerHTML = waitlist.map((person, index) => {
+        return `<li class="queue-item"><span class="queue-number">${index + 1}</span><span class="queue-name">${escapeHtml(person.name)}<span class="queue-phone">${escapeHtml(person.phone)}</span></span>${index === 0 ? '<span class="stack-badge">下一位</span>' : ""}</li>`;
+      }).join("");
+    }
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+    }
+
+    document.querySelector("#queue-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      const person = { name: String(formData.get("name")).trim(), phone: String(formData.get("phone")).trim() };
+      const phoneDigits = person.phone.replace(/\D/g, "");
+      if (!person.name || phoneDigits.length < 8 || phoneDigits.length > 15) {
+        notice.textContent = "請輸入有效電話（8 到 15 位數字）。";
+        return;
+      }
+
+      waitlist.push(person);
+      saveQueue();
+      renderQueue();
+      notice.textContent = `${person.name}，已加入候位，前方目前有 ${waitlist.length - 1} 位。`;
+      event.currentTarget.reset();
+    });
+
+    document.querySelector("#serve-next").addEventListener("click", () => {
+      if (!waitlist.length) {
+        notice.textContent = "目前沒有候位者。";
+        return;
+      }
+      const served = waitlist.shift();
+      saveQueue();
+      renderQueue();
+      notice.textContent = `已完成 ${served.name} 的候位。`;
+    });
+
+    document.querySelector("#clear-queue").addEventListener("click", () => {
+      waitlist = [];
+      saveQueue();
+      renderQueue();
+      notice.textContent = "候位名單已清空。";
+    });
+
+    renderQueue();
+  </script>
+</body>
+</html>

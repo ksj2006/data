@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f4ed">
+  <title>二元搜尋樹建構器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202a25;
+      --muted: #68746c;
+      --paper: #f4f4ed;
+      --surface: #fffefa;
+      --line: #dfe3d9;
+      --green: #315c48;
+      --green-dark: #244735;
+      --lime: #d9e6a5;
+      --coral: #cf694d;
+      --soft-green: #e9efe6;
+      --shadow: 0 16px 40px rgba(36, 55, 44, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#dce3d7 0.7px, transparent 0.7px);
+      background-size: 17px 17px;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .topbar {
+      display: flex;
+      min-height: 66px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(22px, calc((100vw - 1200px) / 2));
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 254, 250, 0.9);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      aspect-ratio: 1;
+      place-items: center;
+      color: white;
+      background: var(--green);
+      font-family: Georgia, serif;
+      font-size: 1.05rem;
+    }
+    .topbar-note { color: var(--muted); font-size: 0.78rem; }
+    main { width: min(1200px, calc(100% - 40px)); margin: 0 auto; padding: 42px 0 56px; }
+    .intro { margin-bottom: 26px; animation: arrive 500ms ease-out both; }
+    .eyebrow { margin: 0 0 10px; color: var(--coral); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; }
+    h1 { margin: 0; font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.12; }
+    .intro-copy { max-width: 650px; margin: 12px 0 0; color: var(--muted); font-size: 0.92rem; line-height: 1.7; }
+    .workspace { display: grid; grid-template-columns: 310px minmax(0, 1fr); gap: 20px; align-items: stretch; }
+    .panel { border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
+    .controls { padding: 22px; animation: arrive 550ms 80ms ease-out both; }
+    .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    h2 { margin: 0; font-size: 1.05rem; }
+    .section-title span { color: var(--muted); font-size: 0.72rem; }
+    .field { display: grid; gap: 8px; }
+    .field label { font-size: 0.82rem; font-weight: 800; }
+    .field input {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px;
+      border: 1px solid #cfd6cb;
+      border-radius: 0;
+      outline: none;
+      color: var(--ink);
+      background: white;
+    }
+    .field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(49, 92, 72, 0.12); }
+    .hint { margin: 0; color: var(--muted); font-size: 0.74rem; line-height: 1.55; }
+    .button-stack { display: grid; gap: 9px; margin-top: 16px; }
+    .button {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border: 1px solid transparent;
+      font-size: 0.82rem;
+      font-weight: 800;
+      transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+    }
+    .button:hover:not(:disabled) { transform: translateY(-1px); }
+    .button-primary { color: white; background: var(--green); }
+    .button-primary:hover:not(:disabled) { background: var(--green-dark); }
+    .button-secondary { border-color: var(--line); color: var(--green); background: white; }
+    .button-secondary:hover:not(:disabled) { border-color: #9fb29e; background: var(--soft-green); }
+    .button-quiet { border-color: transparent; color: var(--muted); background: transparent; }
+    .button-quiet:hover:not(:disabled) { color: var(--ink); background: #f0f2eb; }
+    .button:disabled { cursor: not-allowed; opacity: 0.42; }
+    .divider { height: 1px; margin: 20px 0 16px; border: 0; background: var(--line); }
+    .steps-heading { margin: 0 0 10px; font-size: 0.82rem; font-weight: 800; }
+    .step-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .playback-row { display: grid; grid-template-columns: minmax(0, 1fr) 108px; gap: 8px; margin-top: 8px; }
+    .speed-control { display: grid; gap: 3px; color: var(--muted); font-size: 0.68rem; font-weight: 700; }
+    .speed-control select { width: 100%; min-height: 38px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 0; color: var(--ink); background: white; font: inherit; }
+    .progress { margin: 10px 0 0; color: var(--muted); font-size: 0.75rem; }
+    .status { min-height: 2.8em; margin: 15px 0 0; color: var(--green); font-size: 0.78rem; font-weight: 700; line-height: 1.5; }
+    .route-box { margin-top: 10px; padding: 12px; border-left: 3px solid var(--coral); background: #f7eee8; }
+    .route-label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 0.69rem; font-weight: 700; }
+    .route { margin: 0; overflow-wrap: anywhere; font-size: 0.78rem; line-height: 1.55; }
+    .visual { min-width: 0; overflow: hidden; animation: arrive 600ms 140ms ease-out both; }
+    .visual-header { display: flex; min-height: 64px; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+    .visual-header h2 { font-size: 0.94rem; }
+    .tree-count { color: var(--muted); font-size: 0.74rem; white-space: nowrap; }
+    .canvas-wrap {
+      display: grid;
+      min-height: 390px;
+      max-height: 620px;
+      place-items: center;
+      overflow: auto;
+      padding: 18px;
+      background-color: #f8f9f4;
+      background-image: linear-gradient(rgba(49, 92, 72, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(49, 92, 72, 0.035) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .traversal { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 18px; padding: 16px 18px; border-top: 1px solid var(--line); }
+    .traversal-heading { margin: 0; font-size: 0.84rem; }
+    .traversal-hint { margin: 4px 0 0; color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
+    .traversal-results { display: grid; grid-column: 1 / -1; gap: 8px; }
+    .traversal-result { display: grid; grid-template-columns: 58px minmax(0, 1fr) 40px; align-items: center; gap: 10px; }
+    .traversal-order { color: var(--muted); font-size: 0.75rem; font-weight: 800; }
+    .traversal-output { min-height: 40px; margin: 0; padding: 9px 11px; overflow-wrap: anywhere; border-left: 3px solid var(--coral); color: var(--green-dark); background: #f7eee8; font-size: 0.84rem; font-weight: 800; line-height: 1.5; }
+    .traversal-play { width: 40px; min-height: 40px; padding: 0; font-size: 0.88rem; }
+    .traversal-status { grid-column: 1 / -1; min-height: 1.2em; margin: 0; color: var(--muted); font-size: 0.74rem; }
+    .empty-state { max-width: 280px; color: var(--muted); font-size: 0.86rem; line-height: 1.7; text-align: center; }
+    .tree-svg { display: block; flex: none; overflow: visible; }
+    .tree-svg[hidden] { display: none; }
+    .tree-edge { stroke: #9eac9e; stroke-width: 2; }
+    .tree-node { fill: var(--green); stroke: white; stroke-width: 3; transition: fill 180ms ease; }
+    .tree-node.root { fill: #b35c43; }
+    .tree-node.active { fill: #bd8b28; }
+    .tree-node.traversal-current { fill: var(--coral); stroke: var(--lime); stroke-width: 6; filter: drop-shadow(0 0 7px rgba(207, 105, 77, 0.55)); }
+    .tree-node.pulse { animation: node-arrive 450ms ease-out; }
+    .node-value { fill: white; font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; font-size: 13px; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
+    .node-count { fill: var(--ink); font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; font-size: 11px; font-weight: 800; text-anchor: middle; }
+    footer { padding-top: 22px; color: var(--muted); font-size: 0.72rem; text-align: center; }
+    @keyframes arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes node-arrive { from { opacity: 0.3; stroke-width: 8; } to { opacity: 1; stroke-width: 3; } }
+    @media (max-width: 800px) {
+      main { width: min(100% - 28px, 620px); padding-top: 30px; }
+      .workspace { grid-template-columns: 1fr; }
+      .controls { padding: 19px; }
+      .canvas-wrap { min-height: 330px; }
+    }
+    @media (max-width: 480px) {
+      .topbar { min-height: 58px; padding: 0 15px; }
+      .topbar-note { font-size: 0.7rem; }
+      main { width: calc(100% - 24px); padding-top: 24px; }
+      .visual-header { padding: 12px; }
+      .canvas-wrap { min-height: 290px; padding: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">T</span><span>樹狀結構實驗室</span></div>
+    <span class="topbar-note">資料結構・互動視覺化</span>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">BINARY SEARCH TREE / 01</p>
+      <h1 id="page-title">二元搜尋樹</h1>
+      <p class="intro-copy">第一個數字成為根節點。接下來的數字逐一比較：較小就往左，較大就往右，直到找到空位。</p>
+    </section>
+
+    <div class="workspace">
+      <section class="panel controls" aria-labelledby="input-title">
+        <div class="section-title"><h2 id="input-title">輸入數列</h2><span>最多 80 個整數</span></div>
+        <form id="tree-form">
+          <div class="field">
+            <label for="numbers">依序輸入數字</label>
+            <input id="numbers" name="numbers" type="text" inputmode="numeric" autocomplete="off" placeholder="例如：8, 3, 10, 1, 6" aria-describedby="input-hint" required>
+            <p class="hint" id="input-hint">可用逗號、頓號或空格分隔。重複的數字會累計在同一節點。</p>
+          </div>
+          <div class="button-stack">
+            <button class="button button-primary" type="submit">建立整棵樹 <span aria-hidden="true">↗</span></button>
+            <button class="button button-secondary" id="start-step" type="button">從根節點開始逐步插入</button>
+            <button class="button button-quiet" id="reset" type="button">清除數列與樹</button>
+          </div>
+        </form>
+
+        <hr class="divider">
+        <p class="steps-heading">逐步檢視</p>
+        <div class="step-actions">
+          <button class="button button-secondary" id="previous" type="button" disabled>← 前一步</button>
+          <button class="button button-secondary" id="next" type="button" disabled>下一步 →</button>
+        </div>
+        <div class="playback-row">
+          <button class="button button-primary" id="auto-play" type="button" aria-pressed="false">▶ 自動模擬</button>
+          <label class="speed-control" for="playback-speed">每步間隔
+            <select id="playback-speed">
+              <option value="1100">慢</option>
+              <option value="650" selected>中</option>
+              <option value="300">快</option>
+            </select>
+          </label>
+        </div>
+        <button class="button button-quiet" id="finish" type="button" disabled style="width:100%; margin-top:7px">插入剩餘數字</button>
+        <p class="progress" id="progress" aria-live="polite">尚未建立樹</p>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+        <div class="route-box">
+          <span class="route-label">最近一次比較</span>
+          <p class="route" id="route">輸入數列後，這裡會顯示插入路徑。</p>
+        </div>
+      </section>
+
+      <section class="panel visual" aria-labelledby="tree-title">
+        <div class="visual-header">
+          <h2 id="tree-title">樹狀圖</h2>
+          <span class="tree-count" id="tree-count">0 個節點</span>
+        </div>
+        <div class="canvas-wrap" id="canvas-wrap">
+          <p class="empty-state" id="empty-state">輸入一組數字並建立二元搜尋樹。圖形會依照插入順序排列。</p>
+          <svg class="tree-svg" id="tree-svg" role="img" aria-label="二元搜尋樹圖形" hidden></svg>
+        </div>
+        <div class="traversal">
+          <div>
+            <h3 class="traversal-heading">樹的走訪結果</h3>
+            <p class="traversal-hint">分別依前序（根、左、右）、中序（左、根、右）、後序（左、右、根）輸出。</p>
+          </div>
+          <button class="button button-secondary" id="traverse" type="button" disabled>產生三種結果</button>
+          <div class="traversal-results" aria-live="polite">
+            <div class="traversal-result"><span class="traversal-order">前序</span><output class="traversal-output" id="preorder-output">建立樹後即可輸出。</output><button class="button button-secondary traversal-play" data-traversal-play="preorder" type="button" aria-label="播放前序走訪動畫" title="播放前序走訪動畫" disabled>▶</button></div>
+            <div class="traversal-result"><span class="traversal-order">中序</span><output class="traversal-output" id="inorder-output">建立樹後即可輸出。</output><button class="button button-secondary traversal-play" data-traversal-play="inorder" type="button" aria-label="播放中序走訪動畫" title="播放中序走訪動畫" disabled>▶</button></div>
+            <div class="traversal-result"><span class="traversal-order">後序</span><output class="traversal-output" id="postorder-output">建立樹後即可輸出。</output><button class="button button-secondary traversal-play" data-traversal-play="postorder" type="button" aria-label="播放後序走訪動畫" title="播放後序走訪動畫" disabled>▶</button></div>
+          </div>
+          <p class="traversal-status" id="traversal-status" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+    </div>
+    <footer>每個節點的左子樹都較小，右子樹都較大。</footer>
+  </main>
+
+  <script>
+    const form = document.querySelector("#tree-form");
+    const input = document.querySelector("#numbers");
+    const svg = document.querySelector("#tree-svg");
+    const emptyState = document.querySelector("#empty-state");
+    const status = document.querySelector("#status");
+    const route = document.querySelector("#route");
+    const progress = document.querySelector("#progress");
+    const treeCount = document.querySelector("#tree-count");
+    const previousButton = document.querySelector("#previous");
+    const nextButton = document.querySelector("#next");
+    const finishButton = document.querySelector("#finish");
+    const autoPlayButton = document.querySelector("#auto-play");
+    const playbackSpeed = document.querySelector("#playback-speed");
+    const traverseButton = document.querySelector("#traverse");
+    const preorderOutput = document.querySelector("#preorder-output");
+    const inorderOutput = document.querySelector("#inorder-output");
+    const postorderOutput = document.querySelector("#postorder-output");
+    const traversalStatus = document.querySelector("#traversal-status");
+    const traversalPlayButtons = [...document.querySelectorAll("[data-traversal-play]")];
+    let values = [];
+    let insertedCount = 0;
+    let root = null;
+    let latestValue = null;
+    let latestRoute = "";
+    let autoTimer = null;
+    let traversalSequences = null;
+    let traversalTimer = null;
+    let activeTraversal = null;
+    let traversalIndex = 0;
+
+    function parseInput() {
+      const tokens = input.value.trim().split(/[\s,，、;；]+/).filter(Boolean);
+      if (!tokens.length) throw new Error("請先輸入至少一個整數。");
+      if (tokens.length > 80) throw new Error("一次最多輸入 80 個整數。");
+      const parsed = tokens.map(Number);
+      if (parsed.some((value) => !Number.isSafeInteger(value))) {
+        throw new Error("請輸入有效的安全整數，並以逗號或空格分隔。");
+      }
+      return parsed;
+    }
+
+    function insertValue(value) {
+      const comparisons = [];
+      if (!root) {
+        root = { value, count: 1, left: null, right: null, depth: 0 };
+        latestRoute = `${value} 成為根節點。`;
+        return;
+      }
+
+      let current = root;
+      while (true) {
+        if (value === current.value) {
+          current.count += 1;
+          comparisons.push(`${value} = ${current.value}，計數增加至 ${current.count}`);
+          latestRoute = comparisons.join(" → ");
+          return;
+        }
+        const direction = value < current.value ? "left" : "right";
+        const label = direction === "left" ? "左" : "右";
+        comparisons.push(`${value} ${value < current.value ? "<" : ">"} ${current.value}，往${label}`);
+        if (!current[direction]) {
+          current[direction] = { value, count: 1, left: null, right: null, depth: current.depth + 1 };
+          comparisons.push(`在${label}側新增`);
+          latestRoute = comparisons.join(" → ");
+          return;
+        }
+        current = current[direction];
+      }
+    }
+
+    function rebuild(count) {
+      stopTraversalAnimation();
+      traversalSequences = null;
+      root = null;
+      latestValue = null;
+      latestRoute = "";
+      insertedCount = count;
+      for (const value of values.slice(0, count)) {
+        insertValue(value);
+        latestValue = value;
+      }
+      render();
+    }
+
+    function getTraversalSequences() {
+      const sequences = { preorder: [], inorder: [], postorder: [] };
+      function collect(node) {
+        if (!node) return;
+        for (let occurrence = 0; occurrence < node.count; occurrence += 1) sequences.preorder.push(node.value);
+        collect(node.left);
+        for (let occurrence = 0; occurrence < node.count; occurrence += 1) sequences.inorder.push(node.value);
+        collect(node.right);
+        for (let occurrence = 0; occurrence < node.count; occurrence += 1) sequences.postorder.push(node.value);
+      }
+      collect(root);
+      return sequences;
+    }
+
+    function displayTraversalSequences() {
+      traversalSequences = getTraversalSequences();
+      preorderOutput.textContent = traversalSequences.preorder.join(" ");
+      inorderOutput.textContent = traversalSequences.inorder.join(" ");
+      postorderOutput.textContent = traversalSequences.postorder.join(" ");
+    }
+
+    function updateTraversalButtons() {
+      const labels = { preorder: "前序", inorder: "中序", postorder: "後序" };
+      for (const button of traversalPlayButtons) {
+        const key = button.dataset.traversalPlay;
+        const isActive = activeTraversal === key;
+        const isPlaying = isActive && traversalTimer !== null;
+        const action = isPlaying ? "暫停" : isActive ? "繼續" : "播放";
+        button.textContent = isPlaying ? "Ⅱ" : "▶";
+        button.setAttribute("aria-label", `${action}${labels[key]}走訪動畫`);
+        button.title = `${action}${labels[key]}走訪動畫`;
+        button.disabled = !root;
+      }
+    }
+
+    function stopTraversalAnimation() {
+      if (traversalTimer !== null) {
+        clearTimeout(traversalTimer);
+        traversalTimer = null;
+      }
+      activeTraversal = null;
+      traversalIndex = 0;
+      for (const node of svg.querySelectorAll(".tree-node.traversal-current")) {
+        node.classList.remove("traversal-current");
+      }
+      updateTraversalButtons();
+    }
+
+    function scheduleTraversalStep() {
+      traversalTimer = setTimeout(() => {
+        traversalTimer = null;
+        const sequence = traversalSequences[activeTraversal];
+        const value = sequence[traversalIndex];
+        for (const node of svg.querySelectorAll(".tree-node.traversal-current")) {
+          node.classList.remove("traversal-current");
+        }
+        const currentNode = [...svg.querySelectorAll(".tree-node")].find((node) => node.dataset.nodeValue === String(value));
+        if (currentNode) currentNode.classList.add("traversal-current");
+        traversalIndex += 1;
+        const output = document.querySelector(`#${activeTraversal}-output`);
+        output.textContent = sequence.slice(0, traversalIndex).join(" ");
+        const label = { preorder: "前序", inorder: "中序", postorder: "後序" }[activeTraversal];
+        traversalStatus.textContent = `${label}走訪：第 ${traversalIndex} / ${sequence.length} 步，拜訪 ${value}。`;
+
+        if (traversalIndex >= sequence.length) {
+          activeTraversal = null;
+          traversalStatus.textContent = `${label}走訪動畫完成。`;
+          updateTraversalButtons();
+          return;
+        }
+        updateTraversalButtons();
+        scheduleTraversalStep();
+      }, Number(playbackSpeed.value));
+      updateTraversalButtons();
+    }
+
+    function playTraversal(key) {
+      if (!root) return;
+      if (activeTraversal === key && traversalTimer !== null) {
+        clearTimeout(traversalTimer);
+        traversalTimer = null;
+        traversalStatus.textContent = "走訪動畫已暫停。";
+        updateTraversalButtons();
+        return;
+      }
+      if (activeTraversal !== key) {
+        stopTraversalAnimation();
+        displayTraversalSequences();
+        activeTraversal = key;
+        traversalIndex = 0;
+      }
+      const sequence = traversalSequences[key];
+      if (!sequence.length) return;
+      traversalStatus.textContent = `${{ preorder: "前序", inorder: "中序", postorder: "後序" }[key]}走訪動畫開始。`;
+      scheduleTraversalStep();
+    }
+
+    function updateAutoPlayButton() {
+      autoPlayButton.setAttribute("aria-pressed", String(autoTimer !== null));
+      if (autoTimer !== null) {
+        autoPlayButton.textContent = "Ⅱ 暫停模擬";
+      } else if (values.length && insertedCount >= values.length) {
+        autoPlayButton.textContent = "↻ 重新播放模擬";
+      } else if (insertedCount > 0) {
+        autoPlayButton.textContent = "▶ 繼續模擬";
+      } else {
+        autoPlayButton.textContent = "▶ 自動模擬";
+      }
+    }
+
+    function stopAutoPlay(message) {
+      if (autoTimer !== null) {
+        clearTimeout(autoTimer);
+        autoTimer = null;
+      }
+      updateAutoPlayButton();
+      if (message) status.textContent = message;
+    }
+
+    function scheduleAutoStep() {
+      autoTimer = setTimeout(() => {
+        autoTimer = null;
+        if (insertedCount < values.length) rebuild(insertedCount + 1);
+        if (insertedCount >= values.length) {
+          stopAutoPlay("自動模擬完成，完整二元搜尋樹如下。");
+          return;
+        }
+        status.textContent = `自動模擬中：已分類 ${insertedCount} / ${values.length} 個數字。`;
+        updateAutoPlayButton();
+        scheduleAutoStep();
+      }, Number(playbackSpeed.value));
+      updateAutoPlayButton();
+    }
+
+    function startAutoPlay() {
+      if (autoTimer !== null) {
+        stopAutoPlay("自動模擬已暫停。");
+        return;
+      }
+
+      try {
+        const parsedValues = parseInput();
+        const sameSequence = parsedValues.length === values.length && parsedValues.every((value, index) => value === values[index]);
+        if (!sameSequence || insertedCount === 0 || insertedCount >= values.length) {
+          values = parsedValues;
+          rebuild(1);
+        }
+      } catch (error) {
+        status.textContent = error.message;
+        return;
+      }
+
+      if (insertedCount >= values.length) {
+        stopAutoPlay("自動模擬完成，完整二元搜尋樹如下。");
+        return;
+      }
+      status.textContent = "自動模擬開始，數字將依序插入樹中。";
+      scheduleAutoStep();
+    }
+
+    function collectNodes(node, nodes = []) {
+      if (!node) return nodes;
+      collectNodes(node.left, nodes);
+      node.order = nodes.length;
+      nodes.push(node);
+      collectNodes(node.right, nodes);
+      return nodes;
+    }
+
+    function render() {
+      const nodes = collectNodes(root);
+      treeCount.textContent = `${nodes.length} 個節點${values.length ? `・${values.slice(0, insertedCount).length} 個值` : ""}`;
+      progress.textContent = values.length ? `已插入 ${insertedCount} / ${values.length} 個數字` : "尚未建立樹";
+      previousButton.disabled = insertedCount === 0;
+      nextButton.disabled = insertedCount >= values.length;
+      finishButton.disabled = insertedCount >= values.length || values.length === 0;
+      updateAutoPlayButton();
+      traverseButton.disabled = !root;
+      const outputHint = root ? "按「產生三種結果」查看目前的樹。" : "建立樹後即可輸出。";
+      preorderOutput.textContent = outputHint;
+      inorderOutput.textContent = outputHint;
+      postorderOutput.textContent = outputHint;
+      traversalStatus.textContent = root ? "按各結果旁的播放鍵，可逐步觀看節點走訪順序。" : "";
+      updateTraversalButtons();
+      route.textContent = latestRoute || "輸入數列後，這裡會顯示插入路徑。";
+
+      if (!root) {
+        svg.hidden = true;
+        emptyState.hidden = false;
+        svg.replaceChildren();
+        return;
+      }
+
+      emptyState.hidden = true;
+      svg.removeAttribute("hidden");
+      let maxDepth = 0;
+      for (const node of nodes) maxDepth = Math.max(maxDepth, node.depth);
+      const horizontalGap = Math.max(92, ...nodes.map((node) => Math.max(25, String(node.value).length * 4.5 + 10) * 2 + 20));
+      const width = Math.max(360, nodes.length * horizontalGap + 80);
+      const height = Math.max(300, (maxDepth + 1) * 96 + 64);
+      const xFor = (node) => width / 2 + (node.order - (nodes.length - 1) / 2) * horizontalGap;
+      const yFor = (node) => 38 + node.depth * 96;
+      const edges = [];
+      const circles = [];
+
+      for (const node of nodes) {
+        const x = xFor(node);
+        const y = yFor(node);
+        for (const child of [node.left, node.right]) {
+          if (child) {
+            edges.push(`<line class="tree-edge" x1="${x}" y1="${y + 24}" x2="${xFor(child)}" y2="${yFor(child) - 24}" />`);
+          }
+        }
+        const radius = Math.max(25, String(node.value).length * 4.5 + 10);
+        const classes = ["tree-node", node === root ? "root" : "", node.value === latestValue ? "active pulse" : ""].filter(Boolean).join(" ");
+        circles.push(`<g><ellipse class="${classes}" data-node-value="${node.value}" cx="${x}" cy="${y}" rx="${radius}" ry="23" /><text class="node-value" x="${x}" y="${y}">${node.value}</text>${node.count > 1 ? `<text class="node-count" x="${x}" y="${y + 39}">×${node.count}</text>` : ""}</g>`);
+      }
+
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("width", width);
+      svg.setAttribute("height", height);
+      svg.setAttribute("aria-label", `二元搜尋樹，共 ${nodes.length} 個節點，已插入 ${insertedCount} 個數字`);
+      svg.innerHTML = `${edges.join("")}${circles.join("")}`;
+    }
+
+    function beginBuild(stepByStep) {
+      stopAutoPlay();
+      try {
+        values = parseInput();
+      } catch (error) {
+        status.textContent = error.message;
+        return;
+      }
+      status.textContent = "";
+      rebuild(stepByStep ? 1 : values.length);
+      status.textContent = stepByStep && values.length > 1 ? "根節點已建立，按「下一步」繼續插入。" : "二元搜尋樹已建立完成。";
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      beginBuild(false);
+    });
+
+    document.querySelector("#start-step").addEventListener("click", () => beginBuild(true));
+    autoPlayButton.addEventListener("click", startAutoPlay);
+    traverseButton.addEventListener("click", () => {
+      displayTraversalSequences();
+      traversalStatus.textContent = "三種走訪結果已產生，可按播放鍵觀看順序動畫。";
+    });
+    for (const button of traversalPlayButtons) {
+      button.addEventListener("click", () => playTraversal(button.dataset.traversalPlay));
+    }
+    input.addEventListener("input", () => {
+      if (autoTimer !== null) stopAutoPlay("數列已變更，自動模擬已暫停。");
+    });
+    nextButton.addEventListener("click", () => {
+      stopAutoPlay();
+      if (insertedCount < values.length) rebuild(insertedCount + 1);
+      status.textContent = insertedCount === values.length ? "所有數字都已插入。" : "已插入下一個數字。";
+    });
+    previousButton.addEventListener("click", () => {
+      stopAutoPlay();
+      if (insertedCount > 0) rebuild(insertedCount - 1);
+      status.textContent = insertedCount ? "已回到前一個步驟。" : "已清空樹，可以從根節點重新檢視。";
+    });
+    finishButton.addEventListener("click", () => {
+      stopAutoPlay();
+      rebuild(values.length);
+      status.textContent = "剩餘數字已全部插入。";
+    });
+    document.querySelector("#reset").addEventListener("click", () => {
+      stopAutoPlay();
+      input.value = "";
+      values = [];
+      rebuild(0);
+      status.textContent = "數列與樹已清除。";
+      input.focus();
+    });
+
+    render();
+  </script>
+</body>
+</html>

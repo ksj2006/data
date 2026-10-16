@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f4ed">
+  <title>堆積排序 Heap Sort</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202a25;
+      --muted: #68746c;
+      --paper: #f4f4ed;
+      --surface: #fffefa;
+      --line: #dfe3d9;
+      --green: #315c48;
+      --green-dark: #244735;
+      --lime: #d9e6a5;
+      --coral: #cf694d;
+      --soft-green: #e9efe6;
+      --shadow: 0 16px 40px rgba(36, 55, 44, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#dce3d7 0.7px, transparent 0.7px);
+      background-size: 17px 17px;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .topbar {
+      display: flex;
+      min-height: 66px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(22px, calc((100vw - 1100px) / 2));
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 254, 250, 0.9);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      aspect-ratio: 1;
+      place-items: center;
+      color: white;
+      background: var(--green);
+      font-family: Georgia, serif;
+      font-size: 1.05rem;
+    }
+    .topbar-note { color: var(--muted); font-size: 0.78rem; }
+    main { width: min(1100px, calc(100% - 40px)); margin: 0 auto; padding: 42px 0 56px; }
+    .intro { margin-bottom: 26px; }
+    .eyebrow { margin: 0 0 10px; color: var(--coral); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; }
+    h1 { margin: 0; font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.12; }
+    .intro-copy { max-width: 680px; margin: 12px 0 0; color: var(--muted); font-size: 0.92rem; line-height: 1.7; }
+    .workspace { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+    .panel { border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
+    .controls, .visualization, .complexity, .algorithm { padding: 22px; }
+    .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    h2 { margin: 0; font-size: 1.05rem; }
+    .section-title span, .subtle { color: var(--muted); font-size: 0.76rem; }
+    .field { display: grid; gap: 8px; }
+    .field label { font-size: 0.82rem; font-weight: 800; }
+    .field input {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px;
+      border: 1px solid #cfd6cb;
+      border-radius: 0;
+      outline: none;
+      color: var(--ink);
+      background: white;
+    }
+    .field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(49, 92, 72, 0.12); }
+    .hint { margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+    .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 16px; }
+    .button {
+      min-height: 43px;
+      padding: 9px 12px;
+      border: 1px solid var(--green);
+      color: white;
+      background: var(--green);
+      font-size: 0.84rem;
+      font-weight: 800;
+      transition: background 150ms ease, transform 150ms ease;
+    }
+    .button:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .button.secondary { color: var(--green); background: white; }
+    .button.secondary:hover { background: var(--soft-green); }
+    .message { min-height: 1.4em; margin: 12px 0 0; color: var(--coral); font-size: 0.8rem; line-height: 1.5; }
+    .main-column { display: grid; gap: 20px; }
+    .result-box { padding: 12px 14px; border-left: 3px solid var(--green); background: var(--soft-green); }
+    .result-label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 0.72rem; font-weight: 800; }
+    .result-values { overflow-wrap: anywhere; font-family: Consolas, "Courier New", monospace; font-size: 0.9rem; line-height: 1.6; }
+    .tree-scroll {
+      min-height: 190px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .heap-tree-svg { display: block; max-width: none; margin: 0 auto; }
+    .tree-edge { stroke: #aeb9a8; stroke-width: 2; }
+    .tree-node { fill: var(--green); stroke: #fffefa; stroke-width: 3; }
+    .tree-node.comparing { fill: #c58a32; }
+    .tree-node.swapping { fill: var(--coral); }
+    .tree-node-label {
+      fill: #fffefa;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 14px;
+      font-weight: 800;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .tree-empty { display: grid; min-height: 155px; place-items: center; color: var(--muted); font-size: 0.84rem; }
+    .tree-hint { margin: 10px 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.5; }
+    .animation-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 12px 0; }
+    .speed-control { display: flex; flex: 1 1 220px; align-items: center; gap: 10px; color: var(--muted); font-size: 0.76rem; }
+    .speed-control input { width: min(180px, 40vw); accent-color: var(--green); }
+    .skip-button { min-height: 34px; padding: 6px 10px; border: 1px solid var(--line); color: var(--green); background: white; font-size: 0.76rem; font-weight: 800; }
+    .skip-button:disabled { opacity: 0.55; cursor: default; }
+    .animation-status { min-height: 1.5em; margin: 0 0 12px; color: var(--green); font-size: 0.8rem; }
+    .stats { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 14px; color: var(--muted); font-size: 0.78rem; }
+    .stats strong { color: var(--ink); }
+    .complexity { padding-bottom: 18px; }
+    .complexity-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .metric { min-height: 92px; padding: 13px; border: 1px solid var(--line); background: #fff; }
+    .metric-label { display: block; color: var(--muted); font-size: 0.73rem; }
+    .metric-value { display: block; margin-top: 8px; color: var(--green); font-family: Consolas, "Courier New", monospace; font-size: 1.22rem; font-weight: 800; }
+    .complexity-note { margin: 14px 0 0; color: var(--muted); font-size: 0.8rem; line-height: 1.7; }
+    .comparison { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .comparison h3 { margin: 0 0 12px; font-size: 0.95rem; }
+    .comparison-table-wrap { overflow-x: auto; }
+    .comparison-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.82rem; }
+    .comparison-table th, .comparison-table td { padding: 11px 12px; border-bottom: 1px solid var(--line); }
+    .comparison-table th { color: var(--muted); background: #f8f9f4; font-size: 0.75rem; }
+    .comparison-table td:nth-child(n + 2) { font-family: Consolas, "Courier New", monospace; font-weight: 700; }
+    .comparison-table td:nth-child(2) { color: var(--green); }
+    .comparison-note { margin: 12px 0 0; color: var(--muted); font-size: 0.8rem; line-height: 1.7; }
+    .algorithm pre {
+      overflow-x: auto;
+      margin: 14px 0 0;
+      padding: 16px;
+      color: #e9efe6;
+      background: #263b30;
+      font: 0.8rem/1.7 Consolas, "Courier New", monospace;
+      tab-size: 2;
+    }
+    @media (max-width: 760px) {
+      main { padding-top: 30px; }
+      .workspace { grid-template-columns: 1fr; }
+      .complexity-grid { grid-template-columns: 1fr; }
+      .metric { min-height: 76px; }
+      .topbar-note { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">H</span><span>排序演算法小教室</span></div>
+    <span class="topbar-note">資料結構 · 排序</span>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">ALGORITHM / 01</p>
+      <h1 id="page-title">堆積排序</h1>
+      <p class="intro-copy">輸入一組數字，看看如何先建立最大堆積，再反覆將堆頂最大值移到陣列尾端，完成由小到大的排序。</p>
+    </section>
+
+    <div class="workspace">
+      <section class="panel controls" aria-labelledby="input-title">
+        <div class="section-title">
+          <h2 id="input-title">輸入資料</h2>
+          <span>可重複、可使用負數</span>
+        </div>
+        <form id="sort-form">
+          <div class="field">
+            <label for="numbers">數字（以逗號或空白分隔）</label>
+            <input id="numbers" name="numbers" type="text" value="12, 7, 25, 3, 18, 10, 1" autocomplete="off" spellcheck="false" aria-describedby="input-hint">
+            <p class="hint" id="input-hint">例如：12, 7, 25, 3。請輸入至少一個安全整數。</p>
+          </div>
+          <div class="button-row">
+            <button class="button" type="submit">動畫建立最大堆積</button>
+            <button class="button secondary" id="random-button" type="button">隨機產生</button>
+          </div>
+          <p class="message" id="message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="panel visualization" aria-labelledby="visual-title">
+        <div class="section-title">
+          <h2 id="visual-title">最大堆積二元樹</h2>
+          <span id="item-count">尚未排序</span>
+        </div>
+        <p class="tree-hint">每個父節點都大於或等於子節點；節點由上而下、由左至右依陣列順序排列。</p>
+        <div class="animation-controls">
+          <label class="speed-control" for="animation-speed">
+            動畫速度
+            <input id="animation-speed" type="range" min="100" max="1000" step="100" value="450">
+            <span id="speed-label">450 毫秒／步</span>
+          </label>
+          <button class="skip-button" id="skip-animation" type="button" disabled>跳過動畫</button>
+        </div>
+        <p class="animation-status" id="animation-status" role="status" aria-live="polite">按「動畫建立最大堆積」開始。</p>
+        <div class="tree-scroll" id="tree-scroll">
+          <div class="tree-empty">輸入數字後建立最大堆積</div>
+        </div>
+        <div class="result-box">
+          <span class="result-label">堆積排序結果（由小到大）</span>
+          <div class="result-values" id="result-values" aria-live="polite">建立最大堆積後會顯示排序結果</div>
+        </div>
+        <div class="stats" id="stats" aria-live="polite">
+          <span>比較次數：<strong>—</strong></span>
+          <span>交換次數：<strong>—</strong></span>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel complexity" aria-labelledby="complexity-title" style="margin-top:20px">
+      <div class="section-title">
+        <h2 id="complexity-title">時間與空間複雜度</h2>
+        <span>n 為輸入數字的個數</span>
+      </div>
+      <div class="complexity-grid">
+        <div class="metric"><span class="metric-label">最佳時間</span><strong class="metric-value">O(n log n)</strong></div>
+        <div class="metric"><span class="metric-label">平均時間</span><strong class="metric-value">O(n log n)</strong></div>
+        <div class="metric"><span class="metric-label">最差時間</span><strong class="metric-value">O(n log n)</strong></div>
+        <div class="metric"><span class="metric-label">建堆時間</span><strong class="metric-value">O(n)</strong></div>
+        <div class="metric"><span class="metric-label">額外空間</span><strong class="metric-value">O(1)</strong></div>
+        <div class="metric"><span class="metric-label">排序穩定性</span><strong class="metric-value">不穩定</strong></div>
+      </div>
+      <p class="complexity-note">堆積排序會先用 O(n) 時間建立最大堆積，再進行 n 次取出堆頂操作，每次調整堆積最多花 O(log n)，因此整體時間為 O(n log n)。排序演算法本身直接在原陣列內交換，額外空間為 O(1)；此互動頁為了同時顯示堆積樹與排序結果，會另外保留堆積資料，整體畫面資料使用 O(n) 空間。</p>
+      <div class="comparison" aria-labelledby="comparison-title">
+        <h3 id="comparison-title">堆積排序與氣泡排序的時間複雜度比較</h3>
+        <div class="comparison-table-wrap">
+          <table class="comparison-table">
+            <thead>
+              <tr><th scope="col">情況</th><th scope="col">堆積排序</th><th scope="col">氣泡排序（有提前停止）</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">最佳</th><td>O(n log n)</td><td>O(n)</td></tr>
+              <tr><th scope="row">平均</th><td>O(n log n)</td><td>O(n²)</td></tr>
+              <tr><th scope="row">最差</th><td>O(n log n)</td><td>O(n²)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="comparison-note">資料量增加時，堆積排序的運算成長較慢，較適合大量資料且需要穩定的 O(n log n) 效能；氣泡排序寫法直觀，適合小型資料或教學示範。氣泡排序的最佳 O(n) 是指每輪檢查後若沒有交換便提前結束；若未加入這項最佳化，即使資料已排序，最佳時間仍是 O(n²)。</p>
+      </div>
+    </section>
+
+    <section class="panel algorithm" aria-labelledby="algorithm-title" style="margin-top:20px">
+      <div class="section-title">
+        <h2 id="algorithm-title">核心程式</h2>
+        <span>JavaScript 實作</span>
+      </div>
+      <pre><code>function heapSort(array) {
+  const n = array.length;
+
+  function siftDown(root, heapSize) {
+    let current = root;
+    while (true) {
+      const left = current * 2 + 1;
+      const right = left + 1;
+      let largest = current;
+
+      if (left &lt; heapSize &amp;&amp; array[left] &gt; array[largest]) largest = left;
+      if (right &lt; heapSize &amp;&amp; array[right] &gt; array[largest]) largest = right;
+      if (largest === current) break;
+
+      [array[current], array[largest]] = [array[largest], array[current]];
+      current = largest;
+    }
+  }
+
+  // 建立最大堆積
+  for (let i = Math.floor(n / 2) - 1; i &gt;= 0; i--) {
+    siftDown(i, n);
+  }
+
+  // 將最大值依序移到陣列尾端
+  for (let end = n - 1; end &gt; 0; end--) {
+    [array[0], array[end]] = [array[end], array[0]];
+    siftDown(0, end);
+  }
+  return array;
+}</code></pre>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector("#sort-form");
+    const input = document.querySelector("#numbers");
+    const randomButton = document.querySelector("#random-button");
+    const message = document.querySelector("#message");
+    const resultValues = document.querySelector("#result-values");
+    const itemCount = document.querySelector("#item-count");
+    const treeScroll = document.querySelector("#tree-scroll");
+    const stats = document.querySelector("#stats");
+    const speedInput = document.querySelector("#animation-speed");
+    const speedLabel = document.querySelector("#speed-label");
+    const skipButton = document.querySelector("#skip-animation");
+    const animationStatus = document.querySelector("#animation-status");
+    const submitButton = form.querySelector('button[type="submit"]');
+    const defaultValues = [12, 7, 25, 3, 18, 10, 1];
+    let animationTimer = null;
+    let resolveAnimationWait = null;
+    let skipAnimation = false;
+
+    function parseNumbers(rawValue) {
+      const tokens = rawValue.trim().split(/[,\s，、]+/).filter(Boolean);
+      if (tokens.length === 0) {
+        throw new Error("請至少輸入一個整數。");
+      }
+
+      const values = tokens.map((token) => {
+        if (!/^[+-]?\d+$/.test(token)) {
+          throw new Error(`「${token}」不是有效的整數。`);
+        }
+        const value = Number(token);
+        if (!Number.isSafeInteger(value)) {
+          throw new Error(`「${token}」超出安全整數範圍。`);
+        }
+        return value;
+      });
+      return values;
+    }
+
+    function heapSort(values) {
+      const array = [...values];
+      const counts = { comparisons: 0, swaps: 0 };
+
+      function siftDown(root, heapSize) {
+        let current = root;
+        while (true) {
+          const left = current * 2 + 1;
+          const right = left + 1;
+          let largest = current;
+
+          if (left < heapSize) {
+            counts.comparisons += 1;
+            if (array[left] > array[largest]) largest = left;
+          }
+          if (right < heapSize) {
+            counts.comparisons += 1;
+            if (array[right] > array[largest]) largest = right;
+          }
+          if (largest === current) break;
+
+          [array[current], array[largest]] = [array[largest], array[current]];
+          counts.swaps += 1;
+          current = largest;
+        }
+      }
+
+      for (let i = Math.floor(array.length / 2) - 1; i >= 0; i--) {
+        siftDown(i, array.length);
+      }
+      const maxHeap = [...array];
+      for (let end = array.length - 1; end > 0; end--) {
+        [array[0], array[end]] = [array[end], array[0]];
+        counts.swaps += 1;
+        siftDown(0, end);
+      }
+      return { maxHeap, sorted: array, counts };
+    }
+
+    function renderHeapTree(values, highlightedIndices = [], highlightClass = "comparing") {
+      treeScroll.replaceChildren();
+      if (values.length === 0) {
+        const empty = document.createElement("span");
+        empty.className = "tree-empty";
+        empty.textContent = "沒有可顯示的節點";
+        treeScroll.append(empty);
+        return;
+      }
+
+      const positions = new Array(values.length);
+      let inorderIndex = 0;
+      let maxDepth = 0;
+      function assignPositions(index, depth) {
+        if (index >= values.length) return;
+        maxDepth = Math.max(maxDepth, depth);
+        assignPositions(index * 2 + 1, depth + 1);
+        positions[index] = { order: inorderIndex++, depth };
+        assignPositions(index * 2 + 2, depth + 1);
+      }
+      assignPositions(0, 0);
+
+      const spacing = 76;
+      const radius = 25;
+      const width = Math.max(240, values.length * spacing + 20);
+      const height = Math.max(150, (maxDepth + 1) * 88 + 30);
+      const offset = (width - (values.length - 1) * spacing) / 2;
+      const xFor = (index) => offset + positions[index].order * spacing;
+      const yFor = (index) => 35 + positions[index].depth * 88;
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "heap-tree-svg");
+      svg.setAttribute("width", String(width));
+      svg.setAttribute("height", String(height));
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("role", "img");
+      svg.setAttribute("aria-label", `最大堆積二元樹，共 ${values.length} 個節點，根節點為 ${values[0]}`);
+
+      values.forEach((_, index) => {
+        const left = index * 2 + 1;
+        const right = left + 1;
+        [left, right].forEach((child) => {
+          if (child >= values.length) return;
+          const edge = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          edge.setAttribute("class", "tree-edge");
+          edge.setAttribute("x1", String(xFor(index)));
+          edge.setAttribute("y1", String(yFor(index) + radius));
+          edge.setAttribute("x2", String(xFor(child)));
+          edge.setAttribute("y2", String(yFor(child) - radius));
+          svg.append(edge);
+        });
+      });
+
+      values.forEach((value, index) => {
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        const highlight = highlightedIndices.includes(index) ? ` ${highlightClass}` : "";
+        circle.setAttribute("class", `tree-node${highlight}`);
+        circle.setAttribute("cx", String(xFor(index)));
+        circle.setAttribute("cy", String(yFor(index)));
+        circle.setAttribute("r", String(radius));
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("class", "tree-node-label");
+        label.setAttribute("x", String(xFor(index)));
+        label.setAttribute("y", String(yFor(index)));
+        label.textContent = String(value);
+        svg.append(circle, label);
+      });
+
+      treeScroll.append(svg);
+    }
+
+    function waitForAnimationStep() {
+      return new Promise((resolve) => {
+        resolveAnimationWait = resolve;
+        animationTimer = window.setTimeout(() => {
+          animationTimer = null;
+          resolveAnimationWait = null;
+          resolve();
+        }, Number(speedInput.value));
+      });
+    }
+
+    async function buildMaxHeapWithAnimation(values) {
+      const heap = [...values];
+      const waitForStep = async (indices, description, highlightClass = "comparing") => {
+        if (skipAnimation) return;
+        renderHeapTree(heap, indices, highlightClass);
+        animationStatus.textContent = description;
+        await waitForAnimationStep();
+      };
+
+      for (let root = Math.floor(heap.length / 2) - 1; root >= 0; root--) {
+        let current = root;
+        while (true) {
+          const left = current * 2 + 1;
+          const right = left + 1;
+          let largest = current;
+
+          if (left < heap.length) {
+            await waitForStep([current, left], `比較父節點 ${heap[current]} 與左子節點 ${heap[left]}`);
+            if (heap[left] > heap[largest]) largest = left;
+          }
+          if (right < heap.length) {
+            await waitForStep([largest, right], `比較較大的候選值 ${heap[largest]} 與右子節點 ${heap[right]}`);
+            if (heap[right] > heap[largest]) largest = right;
+          }
+          if (largest === current) break;
+
+          const parentValue = heap[current];
+          const childValue = heap[largest];
+          [heap[current], heap[largest]] = [heap[largest], heap[current]];
+          await waitForStep([current, largest], `交換 ${parentValue} 與 ${childValue}，讓較大的值往上移`, "swapping");
+          current = largest;
+        }
+
+        if (!skipAnimation) {
+          renderHeapTree(heap);
+          animationStatus.textContent = `完成索引 ${root} 的子樹調整。`;
+          await waitForAnimationStep();
+        }
+      }
+
+      renderHeapTree(heap);
+      animationStatus.textContent = skipAnimation ? "已跳過動畫，最大堆積已完成。" : "最大堆積建立完成。";
+      return heap;
+    }
+
+    function displayCounts(counts) {
+      stats.replaceChildren();
+      [
+        ["比較次數", counts.comparisons],
+        ["交換次數", counts.swaps]
+      ].forEach(([label, count]) => {
+        const item = document.createElement("span");
+        item.append(`${label}：`);
+        const value = document.createElement("strong");
+        value.textContent = String(count);
+        item.append(value);
+        stats.append(item);
+      });
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (submitButton.disabled) return;
+      message.textContent = "";
+      try {
+        const values = parseNumbers(input.value);
+        skipAnimation = false;
+        submitButton.disabled = true;
+        randomButton.disabled = true;
+        skipButton.disabled = false;
+        animationStatus.textContent = "開始由最後一個非葉節點向上調整堆積。";
+        const maxHeap = await buildMaxHeapWithAnimation(values);
+        const { sorted, counts } = heapSort(values);
+        resultValues.textContent = sorted.join(", ");
+        itemCount.textContent = `${values.length} 個數字`;
+        renderHeapTree(maxHeap);
+        displayCounts(counts);
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        submitButton.disabled = false;
+        randomButton.disabled = false;
+        skipButton.disabled = true;
+        if (animationTimer !== null) {
+          window.clearTimeout(animationTimer);
+          animationTimer = null;
+        }
+        if (resolveAnimationWait !== null) {
+          const resolve = resolveAnimationWait;
+          resolveAnimationWait = null;
+          resolve();
+        }
+      }
+    });
+
+    skipButton.addEventListener("click", () => {
+      skipAnimation = true;
+      if (animationTimer !== null) {
+        window.clearTimeout(animationTimer);
+        animationTimer = null;
+      }
+      if (resolveAnimationWait !== null) {
+        const resolve = resolveAnimationWait;
+        resolveAnimationWait = null;
+        resolve();
+      }
+    });
+
+    speedInput.addEventListener("input", () => {
+      speedLabel.textContent = `${speedInput.value} 毫秒／步`;
+    });
+
+    randomButton.addEventListener("click", () => {
+      const values = Array.from({ length: 8 }, () => Math.floor(Math.random() * 90) + 10);
+      input.value = values.join(", ");
+      message.textContent = "";
+    });
+
+    input.addEventListener("input", () => {
+      message.textContent = "";
+    });
+
+    const initialHeap = heapSort(defaultValues).maxHeap;
+    itemCount.textContent = `${defaultValues.length} 個數字（範例）`;
+    renderHeapTree(initialHeap);
+  </script>
+</body>
+</html>

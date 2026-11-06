@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#14212b">
+  <title>最短路徑｜Dijkstra 演算法</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e8edf0;
+      --muted: #9aaab5;
+      --background: #14212b;
+      --surface: #1b2b37;
+      --line: #314553;
+      --edge: #344957;
+      --accent: #9bd5e7;
+      --accent-strong: #75c4df;
+      --selected: #f0a64b;
+      --shadow: 0 18px 42px rgba(0, 0, 0, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background: var(--background);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    button { font: inherit; cursor: pointer; }
+    .topbar {
+      display: flex;
+      min-height: 66px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(22px, calc((100vw - 1120px) / 2));
+      border-bottom: 1px solid #263945;
+      background: #172630;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      aspect-ratio: 1;
+      place-items: center;
+      border: 1px solid #628398;
+      border-radius: 50%;
+      color: var(--accent);
+      font-family: Georgia, serif;
+      font-size: 1.05rem;
+    }
+    .topbar-note { color: var(--muted); font-size: 0.78rem; }
+    main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 38px 0 54px; }
+    .intro { margin-bottom: 24px; }
+    .eyebrow { margin: 0 0 9px; color: var(--accent); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.1em; }
+    h1 { margin: 0; font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.15; }
+    .intro-copy { max-width: 760px; margin: 11px 0 0; color: var(--muted); font-size: 0.9rem; line-height: 1.75; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(290px, 0.75fr); gap: 18px; align-items: start; }
+    .panel { border: 1px solid #2b3e4b; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+    .visualization, .results, .details { padding: 20px; }
+    .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    h2 { margin: 0; font-size: 1rem; }
+    .section-title span, .subtle { color: var(--muted); font-size: 0.75rem; }
+    .graph-wrap { overflow: hidden; border: 1px solid #243642; border-radius: 8px; background: #14212b; }
+    .graph { display: block; width: 100%; height: auto; }
+    .edge { stroke: var(--edge); stroke-width: 3.2; transition: stroke 220ms ease, stroke-width 220ms ease; }
+    .edge.examined { stroke: #678294; stroke-width: 4; }
+    .edge.updated { stroke: var(--accent-strong); stroke-width: 4.5; }
+    .edge.path { stroke: var(--selected); stroke-width: 5; }
+    .node-circle { fill: #172630; stroke: #718797; stroke-width: 3; transition: fill 220ms ease, stroke 220ms ease; }
+    .node-circle.settled { fill: #23414e; stroke: var(--accent-strong); }
+    .node-circle.current { fill: #256278; stroke: #b6e8f4; stroke-width: 4; }
+    .node-circle.start { stroke: var(--selected); }
+    .node-circle.destination { stroke: var(--selected); stroke-dasharray: 4 3; }
+    .node-text { fill: #f1f4f5; font-size: 19px; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
+    .place-label { fill: #b3c2ca; font-size: 13px; text-anchor: middle; }
+    .weight-label { fill: var(--accent); font-size: 15px; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
+    .weight-bg { fill: var(--background); }
+    .distance-label { fill: var(--selected); font-size: 14px; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
+    .graph-caption { margin: 11px 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.6; }
+    .animation-panel { margin-top: 15px; padding: 14px; border: 1px solid #2b3e4b; border-radius: 8px; background: #182833; }
+    .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .control-row label { font-size: 0.82rem; font-weight: 800; }
+    .animation-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .button {
+      min-height: 36px;
+      padding: 7px 11px;
+      border: 1px solid var(--accent-strong);
+      border-radius: 6px;
+      color: #10212a;
+      background: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+    .button:hover { background: #b6e8f4; }
+    .button.secondary { color: var(--ink); background: transparent; }
+    .button.secondary:hover { background: #263b48; }
+    .button:focus-visible { outline: 3px solid rgba(117, 196, 223, 0.35); outline-offset: 2px; }
+    .animation-status { min-height: 22px; margin: 11px 0 0; color: var(--muted); font-size: 0.77rem; line-height: 1.5; }
+    .logic-note { margin-top: 12px; padding: 11px 13px; border-left: 3px solid var(--accent-strong); border-radius: 0 6px 6px 0; background: #172630; }
+    .logic-note h3 { margin: 0 0 6px; color: var(--accent); font-size: 0.8rem; }
+    .logic-note p { margin: 4px 0 0; color: var(--muted); font-size: 0.74rem; line-height: 1.55; }
+    .result-card { padding: 14px; border: 1px solid #2b3e4b; border-radius: 8px; background: #172630; }
+    .result-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .result-heading h3 { margin: 0; color: var(--accent); font-size: 0.9rem; }
+    .result-heading span { color: var(--muted); font-size: 0.7rem; }
+    .distance-list { display: grid; gap: 7px; margin: 12px 0 0; padding: 0; list-style: none; }
+    .distance-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid #314553; border-radius: 6px; color: #d7e1e6; font-size: 0.78rem; }
+    .distance-list li.current { border-color: var(--accent-strong); background: #223946; }
+    .distance-list li.on-path { border-color: var(--selected); }
+    .distance-list b { color: var(--selected); font-family: Georgia, serif; font-size: 0.9rem; }
+    .route { margin: 13px 0 0; padding: 11px 12px; border-left: 3px solid var(--selected); color: var(--muted); background: #202f38; font-size: 0.8rem; line-height: 1.6; }
+    .route strong { display: block; margin-top: 3px; color: var(--ink); font-size: 1rem; }
+    .steps { display: grid; max-height: 280px; gap: 8px; overflow-y: auto; margin: 13px 0 0; padding: 0; list-style: none; }
+    .steps li { padding: 8px 9px; border-left: 2px solid #405563; color: var(--muted); font-size: 0.73rem; line-height: 1.5; }
+    .steps li.active { border-left-color: var(--selected); color: var(--ink); background: #22333d; }
+    .steps li.complete { border-left-color: var(--accent-strong); }
+    .details { margin-top: 18px; }
+    .edge-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+    .edge-list li { padding: 6px 9px; border: 1px solid #3c5260; border-radius: 5px; color: #dce5e9; background: #172630; font-family: Georgia, serif; font-size: 0.84rem; font-weight: 700; }
+    .note { margin: 13px 0 0; padding: 11px 13px; border-left: 3px solid var(--accent-strong); color: var(--muted); background: #172630; font-size: 0.78rem; line-height: 1.7; }
+    @media (max-width: 760px) {
+      .workspace { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      main { width: min(100% - 24px, 1120px); padding-top: 28px; }
+      .topbar { padding: 0 14px; }
+      .topbar-note { font-size: 0.68rem; }
+      .visualization, .results, .details { padding: 15px; }
+      .section-title span { text-align: right; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">G</span><span>資料結構互動教室</span></div>
+    <span class="topbar-note">Shortest Path · Dijkstra</span>
+  </header>
+
+  <main>
+    <section class="intro">
+      <p class="eyebrow">DATA STRUCTURE · WEIGHTED GRAPH</p>
+      <h1>Dijkstra 最短路徑</h1>
+      <p class="intro-copy">以照片中的道路與權重，從 A 出發前往 F。所有地點先設為無限遠（∞），每次取出目前距離最小且尚未確定的地點，檢查相鄰道路並更新距離，直到抵達終點。</p>
+    </section>
+
+    <div class="workspace">
+      <section class="panel visualization" aria-labelledby="graph-title">
+        <div class="section-title">
+          <h2 id="graph-title">地點與道路</h2>
+          <span>起點 A · 終點 F</span>
+        </div>
+        <div class="graph-wrap">
+          <svg class="graph" viewBox="0 0 708 335" role="img" aria-labelledby="svg-title svg-description">
+            <title id="svg-title">A 到 F 的加權無向圖與目前最短距離</title>
+            <desc id="svg-description">A 位於左側，B 和 C 在中間左側，D 和 E 在中間右側，F 位於右側。道路權重分別為 AB 2、AC 5、BC 1、BD 4、CE 2、DE 1、DF 3、EF 6。節點上方顯示從 A 出發的目前距離。</desc>
+            <g aria-hidden="true">
+              <line class="edge" data-edge="AB" x1="121" y1="181" x2="273" y2="66"/>
+              <line class="edge" data-edge="AC" x1="121" y1="181" x2="273" y2="295"/>
+              <line class="edge" data-edge="BC" x1="273" y1="66" x2="273" y2="295"/>
+              <line class="edge" data-edge="BD" x1="273" y1="66" x2="451" y2="66"/>
+              <line class="edge" data-edge="CE" x1="273" y1="295" x2="451" y2="295"/>
+              <line class="edge" data-edge="DE" x1="451" y1="66" x2="451" y2="295"/>
+              <line class="edge" data-edge="DF" x1="451" y1="66" x2="623" y2="181"/>
+              <line class="edge" data-edge="EF" x1="451" y1="295" x2="623" y2="181"/>
+            </g>
+            <g aria-hidden="true">
+              <g><circle class="weight-bg" cx="197" cy="122" r="13"/><text class="weight-label" x="197" y="122">2</text></g>
+              <g><circle class="weight-bg" cx="197" cy="239" r="13"/><text class="weight-label" x="197" y="239">5</text></g>
+              <g><circle class="weight-bg" cx="273" cy="181" r="13"/><text class="weight-label" x="273" y="181">1</text></g>
+              <g><circle class="weight-bg" cx="362" cy="66" r="13"/><text class="weight-label" x="362" y="66">4</text></g>
+              <g><circle class="weight-bg" cx="362" cy="295" r="13"/><text class="weight-label" x="362" y="295">2</text></g>
+              <g><circle class="weight-bg" cx="451" cy="181" r="13"/><text class="weight-label" x="451" y="181">1</text></g>
+              <g><circle class="weight-bg" cx="536" cy="122" r="13"/><text class="weight-label" x="536" y="122">3</text></g>
+              <g><circle class="weight-bg" cx="536" cy="239" r="13"/><text class="weight-label" x="536" y="239">6</text></g>
+            </g>
+            <g aria-hidden="true">
+              <circle class="node-circle start" data-node="A" cx="121" cy="181" r="21"/>
+              <circle class="node-circle" data-node="B" cx="273" cy="66" r="21"/>
+              <circle class="node-circle" data-node="C" cx="273" cy="295" r="21"/>
+              <circle class="node-circle" data-node="D" cx="451" cy="66" r="21"/>
+              <circle class="node-circle" data-node="E" cx="451" cy="295" r="21"/>
+              <circle class="node-circle destination" data-node="F" cx="623" cy="181" r="21"/>
+              <text class="node-text" x="121" y="181">A</text>
+              <text class="node-text" x="273" y="66">B</text>
+              <text class="node-text" x="273" y="295">C</text>
+              <text class="node-text" x="451" y="66">D</text>
+              <text class="node-text" x="451" y="295">E</text>
+              <text class="node-text" x="623" y="181">F</text>
+              <text class="distance-label" data-distance="A" x="121" y="143">0</text>
+              <text class="distance-label" data-distance="B" x="273" y="29">∞</text>
+              <text class="distance-label" data-distance="C" x="273" y="258">∞</text>
+              <text class="distance-label" data-distance="D" x="451" y="29">∞</text>
+              <text class="distance-label" data-distance="E" x="451" y="258">∞</text>
+              <text class="distance-label" data-distance="F" x="623" y="143">∞</text>
+              <text class="place-label" x="121" y="223">起點</text>
+              <text class="place-label" x="623" y="223">終點</text>
+            </g>
+          </svg>
+        </div>
+        <div class="animation-panel" aria-label="Dijkstra 演算法動畫控制">
+          <div class="control-row"><strong>從 A 開始，依序向外探索</strong><span class="subtle">單步或自動播放</span></div>
+          <div class="animation-buttons">
+            <button class="button" id="play-button" type="button">▶ 開始播放</button>
+            <button class="button secondary" id="step-button" type="button">單步前進</button>
+            <button class="button secondary" id="reset-button" type="button">重設</button>
+          </div>
+          <p class="animation-status" id="animation-status" aria-live="polite">距離已初始化：A = 0，其餘地點 = ∞。按下播放或單步前進開始。</p>
+        </div>
+        <aside class="logic-note" aria-labelledby="logic-title">
+          <h3 id="logic-title">程式邏輯</h3>
+          <p>① 將道路存成加權鄰接表，距離先設為 ∞，起點 A 設為 0。</p>
+          <p>② 每次選距離最小的未確定地點，逐條檢查道路；若「目前距離＋路權」更短，就更新距離並記錄前一站。</p>
+          <p>③ 把每次更新存成步驟，供動畫逐步呈現；抵達 F 後沿前一站回溯，組成最短路徑。</p>
+        </aside>
+        <p class="graph-caption">節點上方是目前從 A 出發的距離；藍線表示剛檢查的道路，橘線表示最終最短路徑。</p>
+      </section>
+
+      <section class="panel results" aria-labelledby="results-title">
+        <div class="section-title">
+          <h2 id="results-title">距離與路徑</h2>
+          <span>Dijkstra</span>
+        </div>
+        <article class="result-card">
+          <div class="result-heading"><h3>目前最短距離</h3><span>由 A 出發</span></div>
+          <ul class="distance-list" id="distance-list" aria-live="polite"></ul>
+          <p class="route" id="route-result">尚未抵達終點 F。<strong>最短路徑計算中</strong></p>
+        </article>
+        <ol class="steps" id="steps" aria-label="Dijkstra 演算法探索步驟"></ol>
+      </section>
+    </div>
+
+    <section class="panel details" aria-labelledby="edges-title">
+      <div class="section-title">
+        <h2 id="edges-title">道路權重</h2>
+        <span>無向加權圖</span>
+      </div>
+      <ul class="edge-list" aria-label="照片中的道路及其權重">
+        <li>A–B：2</li><li>A–C：5</li><li>B–C：1</li><li>B–D：4</li>
+        <li>C–E：2</li><li>D–E：1</li><li>D–F：3</li><li>E–F：6</li>
+      </ul>
+      <p class="note"><strong>演算法：</strong>若某條道路算出的新距離較短，就更新該地點的距離與前一個地點；已確定最短距離的地點不再改動。抵達 F 時顯示完整最短路徑。</p>
+    </section>
+  </main>
+
+  <script>
+    const nodes = ["A", "B", "C", "D", "E", "F"];
+    const edges = [
+      { from: "A", to: "B", weight: 2 },
+      { from: "A", to: "C", weight: 5 },
+      { from: "B", to: "C", weight: 1 },
+      { from: "B", to: "D", weight: 4 },
+      { from: "C", to: "E", weight: 2 },
+      { from: "D", to: "E", weight: 1 },
+      { from: "D", to: "F", weight: 3 },
+      { from: "E", to: "F", weight: 6 }
+    ];
+    const adjacency = Object.fromEntries(nodes.map((node) => [node, []]));
+    edges.forEach((edge) => {
+      adjacency[edge.from].push({ node: edge.to, edge });
+      adjacency[edge.to].push({ node: edge.from, edge });
+    });
+
+    function edgeName(edge) {
+      return [edge.from, edge.to].sort().join("");
+    }
+
+    function calculateTrace() {
+      const resultDistances = Object.fromEntries(nodes.map((node) => [node, Infinity]));
+      const resultPrevious = Object.fromEntries(nodes.map((node) => [node, null]));
+      const settled = new Set();
+      resultDistances.A = 0;
+      const trace = [{ type: "initialize", distances: { ...resultDistances }, settled: [], current: null }];
+
+      while (settled.size < nodes.length) {
+        const current = nodes
+          .filter((node) => !settled.has(node))
+          .sort((left, right) => resultDistances[left] - resultDistances[right] || left.localeCompare(right))[0];
+        if (resultDistances[current] === Infinity) break;
+        settled.add(current);
+        trace.push({
+          type: "settle",
+          current,
+          distance: resultDistances[current],
+          distances: { ...resultDistances },
+          settled: [...settled]
+        });
+        if (current === "F") break;
+
+        adjacency[current].forEach(({ node, edge }) => {
+          const oldDistance = resultDistances[node];
+          const candidate = resultDistances[current] + edge.weight;
+          const improved = !settled.has(node) && candidate < oldDistance;
+          if (improved) {
+            resultDistances[node] = candidate;
+            resultPrevious[node] = current;
+          }
+          trace.push({
+            type: "relax",
+            current,
+            neighbor: node,
+            distance: resultDistances[current],
+            candidate,
+            oldDistance,
+            distances: { ...resultDistances },
+            settled: [...settled],
+            edge,
+            improved
+          });
+        });
+      }
+
+      const path = [];
+      let node = "F";
+      while (node !== null) {
+        path.unshift(node);
+        node = resultPrevious[node];
+      }
+      return { trace, distances: resultDistances, path, total: resultDistances.F };
+    }
+
+    const result = calculateTrace();
+    let eventIndex = 0;
+    let timer = null;
+    const playButton = document.getElementById("play-button");
+    const status = document.getElementById("animation-status");
+    const stepsList = document.getElementById("steps");
+
+    function renderResult() {
+      document.getElementById("distance-list").replaceChildren(...nodes.map((node) => {
+        const item = document.createElement("li");
+        item.dataset.node = node;
+        const label = document.createElement("span");
+        const value = document.createElement("b");
+        label.textContent = node === "A" ? "A・起點" : node === "F" ? "F・終點" : node;
+        value.textContent = "∞";
+        value.dataset.distanceValue = node;
+        item.append(label, value);
+        return item;
+      }));
+
+      stepsList.replaceChildren(...result.trace.map((event, index) => {
+        const item = document.createElement("li");
+        item.dataset.event = String(index);
+        item.textContent = describeEvent(event);
+        return item;
+      }));
+      renderState(result.trace[0]);
+    }
+
+    function describeEvent(event) {
+      if (event.type === "initialize") return "初始化：A = 0，其餘地點 = ∞。";
+      if (event.type === "settle") return `確定 ${event.current} 的最短距離為 ${event.distance}，從它繼續探索。`;
+      if (event.improved) return `檢查 ${event.current}–${event.neighbor}（${event.edge.weight}）：${event.current} 的 ${event.distance} + ${event.edge.weight} = ${event.candidate}，更新 ${event.neighbor}。`;
+      if (event.settled.includes(event.neighbor)) return `檢查 ${event.current}–${event.neighbor}（${event.edge.weight}）：${event.neighbor} 已確定，略過。`;
+      return `檢查 ${event.current}–${event.neighbor}（${event.edge.weight}）：候選距離 ${event.candidate} 未比目前 ${event.oldDistance} 短，不更新。`;
+    }
+
+    function renderState(event) {
+      const activeEvent = event || result.trace[0];
+      const distancesNow = activeEvent.distances;
+      const settledNow = activeEvent.settled;
+      nodes.forEach((node) => {
+        const distance = distancesNow[node];
+        document.querySelector(`[data-distance="${node}"]`).textContent =
+          distance === Infinity ? "∞" : String(distance);
+        document.querySelector(`[data-distance-value="${node}"]`).textContent =
+          distance === Infinity ? "∞" : String(distance);
+        const circle = document.querySelector(`[data-node="${node}"]`);
+        circle.classList.toggle("settled", settledNow.includes(node));
+        circle.classList.toggle("current", activeEvent.current === node);
+        document.querySelector(`#distance-list [data-node="${node}"]`)
+          .classList.toggle("current", activeEvent.current === node);
+      });
+
+      document.querySelectorAll(".edge").forEach((line) => {
+        const isCurrent = activeEvent.type === "relax" && line.dataset.edge === edgeName(activeEvent.edge);
+        line.classList.toggle("examined", isCurrent);
+        line.classList.toggle("updated", isCurrent && activeEvent.improved);
+        line.classList.toggle("path", false);
+      });
+      if (eventIndex >= result.trace.length - 1) {
+        result.path.slice(1).forEach((node, index) => {
+          const edge = [result.path[index], node].sort().join("");
+          document.querySelector(`[data-edge="${edge}"]`).classList.add("path");
+        });
+        const route = document.getElementById("route-result");
+        route.replaceChildren(document.createTextNode(`最短路徑（總權重 ${result.total}）`));
+        const routeText = document.createElement("strong");
+        routeText.textContent = result.path.join(" → ");
+        route.append(routeText);
+        result.path.forEach((node) => {
+          document.querySelector(`#distance-list [data-node="${node}"]`).classList.add("on-path");
+        });
+      } else {
+        const route = document.getElementById("route-result");
+        route.replaceChildren(document.createTextNode("尚未抵達終點 F。"));
+        const pending = document.createElement("strong");
+        pending.textContent = "最短路徑計算中";
+        route.append(pending);
+        document.querySelectorAll("#distance-list li").forEach((item) => item.classList.remove("on-path"));
+      }
+
+      document.querySelectorAll("#steps li").forEach((item, index) => {
+        item.classList.toggle("complete", index < eventIndex);
+        item.classList.toggle("active", index === eventIndex);
+      });
+      const activeStep = stepsList.querySelector(".active");
+      if (activeStep) activeStep.scrollIntoView({ block: "nearest" });
+      status.textContent = describeEvent(activeEvent);
+    }
+
+    function stopPlayback() {
+      if (timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+      playButton.textContent = "▶ 開始播放";
+    }
+
+    function advance() {
+      if (eventIndex >= result.trace.length - 1) {
+        stopPlayback();
+        status.textContent = `完成！A 到 F 的最短路徑是 ${result.path.join(" → ")}，總權重 ${result.total}。`;
+        return;
+      }
+      eventIndex += 1;
+      renderState(result.trace[eventIndex]);
+      if (eventIndex === result.trace.length - 1) {
+        stopPlayback();
+        status.textContent = `完成！A 到 F 的最短路徑是 ${result.path.join(" → ")}，總權重 ${result.total}。`;
+      }
+    }
+
+    playButton.addEventListener("click", () => {
+      if (timer !== null) {
+        stopPlayback();
+        status.textContent = "動畫已暫停。";
+        return;
+      }
+      if (eventIndex >= result.trace.length - 1) {
+        eventIndex = 0;
+        renderState(result.trace[0]);
+      }
+      playButton.textContent = "⏸ 暫停";
+      advance();
+      if (eventIndex < result.trace.length - 1) timer = window.setInterval(advance, 900);
+    });
+    document.getElementById("step-button").addEventListener("click", () => {
+      stopPlayback();
+      advance();
+    });
+    document.getElementById("reset-button").addEventListener("click", () => {
+      stopPlayback();
+      eventIndex = 0;
+      renderState(result.trace[0]);
+    });
+
+    renderResult();
+  </script>
+</body>
+</html>

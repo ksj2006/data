@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f4ed">
+  <title>雜湊表 Hash Table</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202a25;
+      --muted: #68746c;
+      --paper: #f4f4ed;
+      --surface: #fffefa;
+      --line: #dfe3d9;
+      --green: #315c48;
+      --green-dark: #244735;
+      --lime: #d9e6a5;
+      --coral: #cf694d;
+      --soft-green: #e9efe6;
+      --shadow: 0 16px 40px rgba(36, 55, 44, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#dce3d7 0.7px, transparent 0.7px);
+      background-size: 17px 17px;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .topbar {
+      display: flex;
+      min-height: 66px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(22px, calc((100vw - 1100px) / 2));
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 254, 250, 0.9);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      aspect-ratio: 1;
+      place-items: center;
+      color: white;
+      background: var(--green);
+      font-family: Georgia, serif;
+      font-size: 1.05rem;
+    }
+    .topbar-note { color: var(--muted); font-size: 0.78rem; }
+    main { width: min(1100px, calc(100% - 40px)); margin: 0 auto; padding: 42px 0 56px; }
+    .intro { margin-bottom: 26px; }
+    .eyebrow { margin: 0 0 10px; color: var(--coral); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; }
+    h1 { margin: 0; font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.12; }
+    .intro-copy { max-width: 700px; margin: 12px 0 0; color: var(--muted); font-size: 0.92rem; line-height: 1.7; }
+    .workspace { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
+    .panel { border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
+    .controls, .visualization, .details { padding: 22px; }
+    .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    h2 { margin: 0; font-size: 1.05rem; }
+    .section-title span, .subtle { color: var(--muted); font-size: 0.76rem; }
+    .field { display: grid; gap: 8px; margin-bottom: 16px; }
+    .field label { font-size: 0.82rem; font-weight: 800; }
+    textarea, input {
+      width: 100%;
+      border: 1px solid #cfd6cb;
+      border-radius: 0;
+      outline: none;
+      color: var(--ink);
+      background: white;
+    }
+    textarea { min-height: 88px; padding: 10px 12px; resize: vertical; line-height: 1.5; }
+    input { min-height: 44px; padding: 9px 12px; }
+    textarea:focus, input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(49, 92, 72, 0.12); }
+    .button-row { display: flex; flex-wrap: wrap; gap: 9px; }
+    .button {
+      min-height: 40px;
+      padding: 9px 14px;
+      border: 1px solid var(--green);
+      color: white;
+      background: var(--green);
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+    .button:hover { background: var(--green-dark); }
+    .button.secondary { color: var(--green); background: white; }
+    .button.secondary:hover { background: var(--soft-green); }
+    .button.danger { border-color: #c76c55; color: #a64b35; background: white; }
+    .button.danger:hover { background: #fbefea; }
+    .form-note { margin: -6px 0 16px; color: var(--muted); font-size: 0.75rem; line-height: 1.6; }
+    .rule { height: 1px; margin: 20px 0; border: 0; background: var(--line); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+    .stat { padding: 12px; background: var(--soft-green); }
+    .stat strong { display: block; font-size: 1.2rem; }
+    .stat span { color: var(--muted); font-size: 0.72rem; }
+    .table-grid { display: grid; grid-template-columns: 1fr; gap: 7px; }
+    .slot {
+      display: grid;
+      min-height: 56px;
+      grid-template-columns: 82px minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      background: #fffefa;
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+    .slot.filled { border-color: #b8c8b4; background: var(--soft-green); }
+    .slot.highlight { border-color: var(--coral); background: #fff0e9; }
+    .slot-index { display: block; color: var(--muted); font-size: 0.76rem; font-weight: 700; }
+    .chain { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+    .node { padding: 5px 8px; border: 1px solid #b8c8b4; background: white; font-size: 0.9rem; font-weight: 800; }
+    .chain-arrow { color: var(--green); font-weight: 800; }
+    .empty { color: #a2aaa0; font-size: 0.78rem; }
+    .status {
+      min-height: 48px;
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-left: 3px solid var(--green);
+      color: var(--green-dark);
+      background: var(--soft-green);
+      font-size: 0.83rem;
+      line-height: 1.5;
+    }
+    .status.error { border-color: var(--coral); color: #963f2e; background: #fff0e9; }
+    .details { margin-top: 20px; }
+    .steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 0.83rem; line-height: 1.8; }
+    .steps li + li { margin-top: 4px; }
+    code { padding: 2px 5px; color: var(--green-dark); background: var(--soft-green); font-size: 0.9em; }
+    @media (max-width: 520px) {
+      main { width: min(100% - 24px, 1100px); padding-top: 28px; }
+      .topbar { padding: 0 14px; }
+      .topbar-note { font-size: 0.68rem; }
+      .controls, .visualization, .details { padding: 16px; }
+      .slot { grid-template-columns: 64px minmax(0, 1fr); gap: 8px; padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">H</span><span>資料結構互動教室</span></div>
+    <span class="topbar-note">Hash Table · Separate Chaining</span>
+  </header>
+
+  <main>
+    <section class="intro">
+      <p class="eyebrow">DATA STRUCTURE · 01</p>
+      <h1>雜湊表</h1>
+      <p class="intro-copy">輸入整數，觀察雜湊函式如何將資料放入表格。此範例預先放入 15 個數值，使用除以 13 取餘數決定索引，並以鏈結法處理碰撞；你也可以繼續新增、查詢或刪除資料。</p>
+    </section>
+
+    <div class="workspace">
+      <section class="panel controls" aria-labelledby="controls-title">
+        <div class="section-title">
+          <h2 id="controls-title">資料操作</h2>
+          <span>可用逗號或空白分隔</span>
+        </div>
+        <div class="field">
+          <label for="values-input">新增數值（可一次輸入多個）</label>
+          <textarea id="values-input" placeholder="例如：12, 25, 38"></textarea>
+        </div>
+        <p class="form-note">請輸入整數。表格有 13 個桶，每個桶可用鏈結串接多筆資料；重複值不會重複加入。</p>
+        <div class="button-row">
+          <button class="button" id="insert-button" type="button">新增資料</button>
+          <button class="button secondary" id="clear-input-button" type="button">清空輸入</button>
+        </div>
+
+        <hr class="rule">
+
+        <div class="field">
+          <label for="lookup-input">查詢或刪除數值</label>
+          <input id="lookup-input" type="number" step="1" placeholder="輸入整數">
+        </div>
+        <div class="button-row">
+          <button class="button secondary" id="search-button" type="button">查詢</button>
+          <button class="button danger" id="delete-button" type="button">刪除</button>
+        </div>
+
+        <hr class="rule">
+
+        <div class="button-row">
+          <button class="button secondary" id="reset-button" type="button">重設為 15 個範例</button>
+        </div>
+      </section>
+
+      <section class="panel visualization" aria-labelledby="table-title">
+        <div class="section-title">
+          <h2 id="table-title">雜湊表格</h2>
+          <span>索引範圍 0–12</span>
+        </div>
+        <div class="stats" aria-label="表格統計">
+          <div class="stat"><strong id="size-count">0</strong><span>資料筆數</span></div>
+          <div class="stat"><strong id="load-factor">0%</strong><span>負載因子</span></div>
+          <div class="stat"><strong>key % 13</strong><span>雜湊函式</span></div>
+        </div>
+        <div class="table-grid" id="table-grid" aria-label="雜湊表索引與鏈結資料"></div>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <section class="panel details" aria-labelledby="how-title">
+      <div class="section-title">
+        <h2 id="how-title">運作方式</h2>
+        <span>鏈結法（Separate Chaining）</span>
+      </div>
+      <ol class="steps">
+        <li>先計算索引：<code>h(key) = key mod 13</code>（負數也會轉成 0–12 的索引）。</li>
+        <li>若多個數值算出相同索引，就把它們接在同一個桶的鏈結後方，不需要移到其他桶。</li>
+        <li>查詢與刪除會沿著該桶的鏈結尋找目標值；每個桶可以串接多筆資料。</li>
+      </ol>
+    </section>
+  </main>
+
+  <script>
+    const TABLE_SIZE = 13;
+    const initialValues = [29, 18, 24, 38, 15, 11, 7, 22, 31, 17, 9, 42, 13, 26, 35];
+    const table = Array.from({ length: TABLE_SIZE }, () => []);
+    const tableGrid = document.getElementById("table-grid");
+    const status = document.getElementById("status");
+    const valuesInput = document.getElementById("values-input");
+    const lookupInput = document.getElementById("lookup-input");
+
+    function hash(key) {
+      return ((key % TABLE_SIZE) + TABLE_SIZE) % TABLE_SIZE;
+    }
+
+    function setStatus(message, isError = false, index = -1) {
+      status.textContent = message;
+      status.classList.toggle("error", isError);
+      render(index);
+    }
+
+    function render(highlightIndex = -1) {
+      const count = table.reduce((total, chain) => total + chain.length, 0);
+      document.getElementById("size-count").textContent = String(count);
+      document.getElementById("load-factor").textContent = `${Math.round(count / TABLE_SIZE * 100)}%`;
+      tableGrid.replaceChildren();
+
+      table.forEach((chain, index) => {
+        const slot = document.createElement("div");
+        slot.className = "slot";
+        if (chain.length > 0) slot.classList.add("filled");
+        if (index === highlightIndex) slot.classList.add("highlight");
+
+        const label = document.createElement("span");
+        label.className = "slot-index";
+        label.textContent = `索引 ${index}`;
+        slot.append(label);
+        if (chain.length === 0) {
+          const empty = document.createElement("span");
+          empty.className = "chain empty";
+          empty.textContent = "空";
+          slot.append(empty);
+        } else {
+          const chainView = document.createElement("div");
+          chainView.className = "chain";
+          chain.forEach((value, position) => {
+            if (position > 0) {
+              const arrow = document.createElement("span");
+              arrow.className = "chain-arrow";
+              arrow.textContent = "→";
+              chainView.append(arrow);
+            }
+            const node = document.createElement("span");
+            node.className = "node";
+            node.textContent = String(value);
+            chainView.append(node);
+          });
+          slot.append(chainView);
+        }
+        tableGrid.append(slot);
+      });
+    }
+
+    function insert(key) {
+      const index = hash(key);
+      if (table[index].includes(key)) return { result: "duplicate", index };
+      table[index].push(key);
+      return { result: "inserted", index };
+    }
+
+    function find(key) {
+      const index = hash(key);
+      const position = table[index].indexOf(key);
+      return position === -1 ? null : { index, position };
+    }
+
+    function parseValues(text) {
+      const parts = text.trim().split(/[\s,，;；]+/).filter(Boolean);
+      if (parts.length === 0) return { values: [], invalid: [] };
+      const values = [];
+      const invalid = [];
+
+      parts.forEach(part => {
+        if (!/^[+-]?\d+$/.test(part) || !Number.isSafeInteger(Number(part))) {
+          invalid.push(part);
+        } else {
+          values.push(Number(part));
+        }
+      });
+      return { values, invalid };
+    }
+
+    document.getElementById("insert-button").addEventListener("click", () => {
+      const parsed = parseValues(valuesInput.value);
+      if (parsed.values.length === 0 && parsed.invalid.length === 0) {
+        setStatus("請先輸入至少一個整數。", true);
+        return;
+      }
+
+      const inserted = [];
+      const duplicates = [];
+      let lastIndex = -1;
+      parsed.values.forEach(value => {
+        const result = insert(value);
+        if (result.result === "inserted") {
+          inserted.push(value);
+          lastIndex = result.index;
+        } else if (result.result === "duplicate") {
+          duplicates.push(value);
+          lastIndex = result.index;
+        }
+      });
+
+      const messages = [];
+      if (inserted.length) messages.push(`已新增 ${inserted.length} 個：${inserted.join(", ")}`);
+      if (duplicates.length) messages.push(`略過重複值：${duplicates.join(", ")}`);
+      if (parsed.invalid.length) messages.push(`無效輸入：${parsed.invalid.join(", ")}`);
+      setStatus(messages.join("。"), parsed.invalid.length > 0, lastIndex);
+      valuesInput.value = "";
+    });
+
+    document.getElementById("search-button").addEventListener("click", () => {
+      const key = lookupInput.valueAsNumber;
+      if (!Number.isSafeInteger(key)) {
+        setStatus("請輸入有效的整數再查詢。", true);
+        return;
+      }
+      const location = find(key);
+      setStatus(
+        location === null
+          ? `找不到 ${key}，已檢查索引 ${hash(key)} 的鏈結。`
+          : `找到 ${key}，位於索引 ${location.index} 的鏈結第 ${location.position + 1} 個節點。`,
+        location === null,
+        location === null ? -1 : location.index
+      );
+    });
+
+    document.getElementById("delete-button").addEventListener("click", () => {
+      const key = lookupInput.valueAsNumber;
+      if (!Number.isSafeInteger(key)) {
+        setStatus("請輸入有效的整數再刪除。", true);
+        return;
+      }
+      const location = find(key);
+      if (location === null) {
+        setStatus(`找不到 ${key}，沒有刪除任何資料。`, true);
+        return;
+      }
+      table[location.index].splice(location.position, 1);
+      setStatus(`已從索引 ${location.index} 的鏈結刪除 ${key}。`, false, location.index);
+    });
+
+    document.getElementById("clear-input-button").addEventListener("click", () => {
+      valuesInput.value = "";
+      lookupInput.value = "";
+      setStatus("輸入欄位已清空。");
+    });
+
+    document.getElementById("reset-button").addEventListener("click", () => {
+      table.forEach(chain => chain.splice(0));
+      initialValues.forEach(insert);
+      lookupInput.value = "";
+      valuesInput.value = "";
+      setStatus("已重設，表格中有 15 個範例數值。");
+    });
+
+    initialValues.forEach(insert);
+    setStatus("已載入 15 個範例數值。試著查詢或新增資料。");
+  </script>
+</body>
+</html>

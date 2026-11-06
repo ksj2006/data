@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#14212b">
+  <title>最小生成樹｜Prim 演算法</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e8edf0;
+      --muted: #9aaab5;
+      --background: #14212b;
+      --surface: #1b2b37;
+      --line: #314553;
+      --edge: #344957;
+      --accent: #9bd5e7;
+      --accent-strong: #75c4df;
+      --selected: #f0c674;
+      --shadow: 0 18px 42px rgba(0, 0, 0, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background: var(--background);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    button, select { font: inherit; }
+    button, select { cursor: pointer; }
+    .topbar {
+      display: flex;
+      min-height: 66px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(22px, calc((100vw - 1120px) / 2));
+      border-bottom: 1px solid #263945;
+      background: #172630;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      aspect-ratio: 1;
+      place-items: center;
+      border: 1px solid #628398;
+      border-radius: 50%;
+      color: var(--accent);
+      font-family: Georgia, serif;
+      font-size: 1.05rem;
+    }
+    .topbar-note { color: var(--muted); font-size: 0.78rem; }
+    main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 38px 0 54px; }
+    .intro { margin-bottom: 24px; }
+    .eyebrow { margin: 0 0 9px; color: var(--accent); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.1em; }
+    h1 { margin: 0; font-family: Georgia, "Noto Serif TC", serif; font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.15; }
+    .intro-copy { max-width: 760px; margin: 11px 0 0; color: var(--muted); font-size: 0.9rem; line-height: 1.75; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(290px, 0.75fr); gap: 18px; align-items: start; }
+    .panel { border: 1px solid #2b3e4b; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+    .visualization, .results, .details { padding: 20px; }
+    .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    h2 { margin: 0; font-size: 1rem; }
+    .section-title span, .subtle { color: var(--muted); font-size: 0.75rem; }
+    .graph-wrap { overflow: hidden; border: 1px solid #243642; border-radius: 8px; background: #14212b; }
+    .graph { display: block; width: 100%; height: auto; }
+    .edge { stroke: var(--edge); stroke-width: 3.2; transition: stroke 220ms ease, stroke-width 220ms ease; }
+    .edge.selected { stroke: var(--selected); stroke-width: 5; }
+    .node-circle { fill: #172630; stroke: #718797; stroke-width: 3; transition: fill 220ms ease, stroke 220ms ease; }
+    .node-circle.visited { fill: #23414e; stroke: var(--accent-strong); }
+    .node-circle.current { fill: #256278; stroke: #b6e8f4; stroke-width: 4; }
+    .node-text { fill: #f1f4f5; font-size: 19px; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
+    .place-label { fill: #b3c2ca; font-size: 13px; text-anchor: middle; }
+    .weight-label { fill: var(--accent); font-size: 15px; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
+    .weight-bg { fill: var(--background); }
+    .graph-caption { margin: 11px 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.6; }
+    .animation-panel { margin-top: 15px; padding: 14px; border: 1px solid #2b3e4b; border-radius: 8px; background: #182833; }
+    .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .control-row label, .controls label { font-size: 0.82rem; font-weight: 800; }
+    select {
+      min-height: 38px;
+      padding: 6px 30px 6px 10px;
+      border: 1px solid #4a606e;
+      border-radius: 6px;
+      color: var(--ink);
+      background: #14212b;
+    }
+    select:focus, button:focus-visible { outline: 3px solid rgba(117, 196, 223, 0.35); outline-offset: 2px; }
+    .animation-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .button {
+      min-height: 36px;
+      padding: 7px 11px;
+      border: 1px solid var(--accent-strong);
+      border-radius: 6px;
+      color: #10212a;
+      background: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+    .button:hover { background: #b6e8f4; }
+    .button.secondary { color: var(--ink); background: transparent; }
+    .button.secondary:hover { background: #263b48; }
+    .animation-status { min-height: 22px; margin: 11px 0 0; color: var(--muted); font-size: 0.77rem; line-height: 1.5; }
+    .controls { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .result-card { padding: 14px; border: 1px solid #2b3e4b; border-radius: 8px; background: #172630; }
+    .result-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .result-heading h3 { margin: 0; color: var(--accent); font-size: 0.9rem; }
+    .result-heading span { color: var(--muted); font-size: 0.7rem; }
+    .total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #314553; }
+    .total span { color: var(--muted); font-size: 0.8rem; }
+    .total strong { color: var(--selected); font-family: Georgia, serif; font-size: 1.7rem; }
+    .mst-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+    .mst-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid #314553; border-radius: 6px; color: #d7e1e6; font-size: 0.78rem; }
+    .mst-list b { color: var(--selected); font-family: Georgia, serif; font-size: 0.9rem; }
+    .steps { display: grid; gap: 9px; margin: 14px 0 0; padding: 0; list-style: none; }
+    .steps li { padding: 9px 10px; border-left: 2px solid #405563; color: var(--muted); font-size: 0.75rem; line-height: 1.55; }
+    .steps li.active { border-left-color: var(--selected); color: var(--ink); background: #22333d; }
+    .steps li.complete { border-left-color: var(--accent-strong); }
+    .details { margin-top: 18px; }
+    .edge-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+    .edge-list li { padding: 6px 9px; border: 1px solid #3c5260; border-radius: 5px; color: #dce5e9; background: #172630; font-family: Georgia, serif; font-size: 0.84rem; font-weight: 700; }
+    .note { margin: 13px 0 0; padding: 11px 13px; border-left: 3px solid var(--accent-strong); color: var(--muted); background: #172630; font-size: 0.78rem; line-height: 1.7; }
+    @media (max-width: 760px) {
+      .workspace { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      main { width: min(100% - 24px, 1120px); padding-top: 28px; }
+      .topbar { padding: 0 14px; }
+      .topbar-note { font-size: 0.68rem; }
+      .visualization, .results, .details { padding: 15px; }
+      .section-title span { text-align: right; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">G</span><span>資料結構互動教室</span></div>
+    <span class="topbar-note">Minimum Spanning Tree · Prim</span>
+  </header>
+
+  <main>
+    <section class="intro">
+      <p class="eyebrow">DATA STRUCTURE · GRAPH</p>
+      <h1>最小生成樹</h1>
+      <p class="intro-copy">以圖片中的六個地點和道路權重為例。選擇起點後，Prim 演算法會每次從已連通的地點挑選權重最小的道路，直到所有地點連成一棵樹。</p>
+    </section>
+
+    <div class="workspace">
+      <section class="panel visualization" aria-labelledby="graph-title">
+        <div class="section-title">
+          <h2 id="graph-title">地點與道路</h2>
+          <span>6 個地點 · 9 條道路</span>
+        </div>
+        <div class="graph-wrap">
+          <svg class="graph" viewBox="0 0 760 390" role="img" aria-labelledby="svg-title svg-description">
+            <title id="svg-title">六個地點的加權無向圖</title>
+            <desc id="svg-description">校門 A、圖書館 B、餐廳 C、系館 D、宿舍 E、體育館 F，以九條標示權重的道路相連。</desc>
+            <g aria-hidden="true">
+              <line class="edge" data-edge="AB" x1="75" y1="195" x2="245" y2="80"/>
+              <line class="edge" data-edge="AC" x1="75" y1="195" x2="245" y2="310"/>
+              <line class="edge" data-edge="BC" x1="245" y1="80" x2="245" y2="310"/>
+              <line class="edge" data-edge="BD" x1="245" y1="80" x2="475" y2="80"/>
+              <line class="edge" data-edge="CD" x1="245" y1="310" x2="475" y2="80"/>
+              <line class="edge" data-edge="CE" x1="245" y1="310" x2="475" y2="310"/>
+              <line class="edge" data-edge="DE" x1="475" y1="80" x2="475" y2="310"/>
+              <line class="edge" data-edge="DF" x1="475" y1="80" x2="685" y2="195"/>
+              <line class="edge" data-edge="EF" x1="475" y1="310" x2="685" y2="195"/>
+            </g>
+            <g aria-hidden="true">
+              <g><circle class="weight-bg" cx="153" cy="132" r="13"/><text class="weight-label" x="153" y="132">4</text></g>
+              <g><circle class="weight-bg" cx="153" cy="258" r="13"/><text class="weight-label" x="153" y="258">2</text></g>
+              <g><circle class="weight-bg" cx="245" cy="195" r="13"/><text class="weight-label" x="245" y="195">1</text></g>
+              <g><circle class="weight-bg" cx="360" cy="80" r="13"/><text class="weight-label" x="360" y="80">5</text></g>
+              <g><circle class="weight-bg" cx="353" cy="185" r="13"/><text class="weight-label" x="353" y="185">8</text></g>
+              <g><circle class="weight-bg" cx="360" cy="310" r="15"/><text class="weight-label" x="360" y="310">10</text></g>
+              <g><circle class="weight-bg" cx="475" cy="195" r="13"/><text class="weight-label" x="475" y="195">2</text></g>
+              <g><circle class="weight-bg" cx="580" cy="132" r="13"/><text class="weight-label" x="580" y="132">6</text></g>
+              <g><circle class="weight-bg" cx="580" cy="258" r="13"/><text class="weight-label" x="580" y="258">3</text></g>
+            </g>
+            <g aria-hidden="true">
+              <text class="place-label" x="75" y="153">校門</text>
+              <text class="place-label" x="245" y="29">圖書館</text>
+              <text class="place-label" x="245" y="359">餐廳</text>
+              <text class="place-label" x="475" y="29">系館</text>
+              <text class="place-label" x="475" y="359">宿舍</text>
+              <text class="place-label" x="685" y="153">體育館</text>
+              <circle class="node-circle" data-node="A" cx="75" cy="195" r="26"/><text class="node-text" x="75" y="195">A</text>
+              <circle class="node-circle" data-node="B" cx="245" cy="80" r="26"/><text class="node-text" x="245" y="80">B</text>
+              <circle class="node-circle" data-node="C" cx="245" cy="310" r="26"/><text class="node-text" x="245" y="310">C</text>
+              <circle class="node-circle" data-node="D" cx="475" cy="80" r="26"/><text class="node-text" x="475" y="80">D</text>
+              <circle class="node-circle" data-node="E" cx="475" cy="310" r="26"/><text class="node-text" x="475" y="310">E</text>
+              <circle class="node-circle" data-node="F" cx="685" cy="195" r="26"/><text class="node-text" x="685" y="195">F</text>
+            </g>
+          </svg>
+        </div>
+        <div class="animation-panel" aria-label="Prim 演算法動畫控制">
+          <div class="control-row">
+            <label for="start-node">選擇起點</label>
+            <select id="start-node" aria-label="選擇 Prim 演算法起點">
+              <option value="A">A・校門</option>
+              <option value="B">B・圖書館</option>
+              <option value="C">C・餐廳</option>
+              <option value="D">D・系館</option>
+              <option value="E">E・宿舍</option>
+              <option value="F">F・體育館</option>
+            </select>
+          </div>
+          <div class="animation-buttons">
+            <button class="button" id="play-button" type="button">▶ 開始播放</button>
+            <button class="button secondary" id="step-button" type="button">單步前進</button>
+            <button class="button secondary" id="reset-button" type="button">重設</button>
+          </div>
+          <p class="animation-status" id="animation-status" aria-live="polite">準備就緒，按下「開始播放」或「單步前進」查看建構過程。</p>
+        </div>
+        <p class="graph-caption">道路數字代表權重；黃色道路是目前已加入最小生成樹的道路。</p>
+      </section>
+
+      <section class="panel results" aria-labelledby="results-title">
+        <div class="section-title">
+          <h2 id="results-title">最小生成樹結果</h2>
+          <span>Prim 演算法</span>
+        </div>
+        <div class="controls">
+          <label for="result-start">計算起點</label>
+          <select id="result-start" aria-label="選擇計算起點">
+            <option value="A">A・校門</option>
+            <option value="B">B・圖書館</option>
+            <option value="C">C・餐廳</option>
+            <option value="D">D・系館</option>
+            <option value="E">E・宿舍</option>
+            <option value="F">F・體育館</option>
+          </select>
+        </div>
+        <article class="result-card" aria-live="polite">
+          <div class="result-heading"><h3>選取的道路</h3><span>共 5 條，連通 6 個地點</span></div>
+          <ul class="mst-list" id="mst-edges"></ul>
+          <div class="total"><span>最小總權重</span><strong id="mst-total">0</strong></div>
+        </article>
+        <ol class="steps" id="mst-steps" aria-label="Prim 演算法選邊步驟"></ol>
+      </section>
+    </div>
+
+    <section class="panel details" aria-labelledby="edges-title">
+      <div class="section-title">
+        <h2 id="edges-title">道路權重</h2>
+        <span>無向加權圖</span>
+      </div>
+      <ul class="edge-list" aria-label="所有道路及其權重">
+        <li>A–B：4</li><li>A–C：2</li><li>B–C：1</li><li>B–D：5</li><li>C–D：8</li>
+        <li>C–E：10</li><li>D–E：2</li><li>D–F：6</li><li>E–F：3</li>
+      </ul>
+      <p class="note"><strong>小提醒：</strong>起點會改變 Prim 演算法加入道路的順序，但這張圖的最小生成樹與總權重不會改變。若有相同權重，會依道路字母順序決定先後。</p>
+    </section>
+  </main>
+
+  <script>
+    const nodes = {
+      A: "校門",
+      B: "圖書館",
+      C: "餐廳",
+      D: "系館",
+      E: "宿舍",
+      F: "體育館"
+    };
+    const edges = [
+      { from: "A", to: "B", weight: 4 },
+      { from: "A", to: "C", weight: 2 },
+      { from: "B", to: "C", weight: 1 },
+      { from: "B", to: "D", weight: 5 },
+      { from: "C", to: "D", weight: 8 },
+      { from: "C", to: "E", weight: 10 },
+      { from: "D", to: "E", weight: 2 },
+      { from: "D", to: "F", weight: 6 },
+      { from: "E", to: "F", weight: 3 }
+    ];
+    const startNode = document.getElementById("start-node");
+    const resultStart = document.getElementById("result-start");
+    const playButton = document.getElementById("play-button");
+    let animationEvents = [];
+    let animationIndex = 0;
+    let animationTimer = null;
+
+    function edgeName(edge) {
+      return [edge.from, edge.to].sort().join("");
+    }
+
+    function calculatePrim(start) {
+      const visited = new Set([start]);
+      const selectedEdges = [];
+      const events = [{ node: start, edge: null, candidates: [] }];
+
+      while (visited.size < Object.keys(nodes).length) {
+        const candidates = edges
+          .filter((edge) => visited.has(edge.from) !== visited.has(edge.to))
+          .sort((left, right) => left.weight - right.weight || edgeName(left).localeCompare(edgeName(right)));
+        const nextEdge = candidates[0];
+
+        if (!nextEdge) {
+          throw new Error("圖形不連通，無法建立最小生成樹。");
+        }
+
+        const nextNode = visited.has(nextEdge.from) ? nextEdge.to : nextEdge.from;
+        visited.add(nextNode);
+        selectedEdges.push(nextEdge);
+        events.push({ node: nextNode, edge: nextEdge, candidates });
+      }
+
+      return {
+        edges: selectedEdges,
+        total: selectedEdges.reduce((sum, edge) => sum + edge.weight, 0),
+        events
+      };
+    }
+
+    function renderResult(result) {
+      const edgeList = document.getElementById("mst-edges");
+      edgeList.replaceChildren(...result.edges.map((edge) => {
+        const item = document.createElement("li");
+        const label = document.createElement("span");
+        const weight = document.createElement("b");
+        label.textContent = `${edge.from}（${nodes[edge.from]}）– ${edge.to}（${nodes[edge.to]}）`;
+        weight.textContent = edge.weight;
+        item.append(label, weight);
+        return item;
+      }));
+      document.getElementById("mst-total").textContent = String(result.total);
+
+      const steps = document.getElementById("mst-steps");
+      steps.replaceChildren(...result.edges.map((edge, index) => {
+        const item = document.createElement("li");
+        item.dataset.step = String(index + 1);
+        const newNode = result.events[index + 1].node;
+        item.textContent = `第 ${index + 1} 步：加入 ${edge.from}–${edge.to}（權重 ${edge.weight}），連接至 ${newNode}・${nodes[newNode]}。`;
+        return item;
+      }));
+    }
+
+    function stopAnimation() {
+      if (animationTimer !== null) {
+        window.clearInterval(animationTimer);
+        animationTimer = null;
+      }
+      playButton.textContent = "▶ 開始播放";
+    }
+
+    function updateAnimation() {
+      const visitedNodes = animationEvents.slice(0, animationIndex + 1).map((event) => event.node);
+      const selected = animationEvents.slice(1, animationIndex + 1)
+        .map((event) => edgeName(event.edge));
+      const currentNode = animationEvents[animationIndex]?.node;
+      document.querySelectorAll(".node-circle").forEach((circle) => {
+        const node = circle.dataset.node;
+        circle.classList.toggle("visited", visitedNodes.includes(node));
+        circle.classList.toggle("current", node === currentNode);
+      });
+      document.querySelectorAll(".edge").forEach((line) => {
+        line.classList.toggle("selected", selected.includes(line.dataset.edge));
+      });
+      document.querySelectorAll("#mst-steps li").forEach((step) => {
+        const stepIndex = Number(step.dataset.step);
+        step.classList.toggle("complete", stepIndex < animationIndex);
+        step.classList.toggle("active", stepIndex === animationIndex);
+      });
+    }
+
+    function advanceAnimation() {
+      if (animationIndex >= animationEvents.length) {
+        stopAnimation();
+        document.getElementById("animation-status").textContent =
+          `建構完成！從 ${startNode.value} 出發，最小總權重為 ${calculatePrim(startNode.value).total}。`;
+        return;
+      }
+
+      const event = animationEvents[animationIndex];
+      updateAnimation();
+      if (event.edge) {
+        const candidates = event.candidates.map((edge) => `${edgeName(edge)}(${edge.weight})`).join("、");
+        document.getElementById("animation-status").textContent =
+          `第 ${animationIndex} 步：比較可連接道路 ${candidates}，選擇最小的 ${edgeName(event.edge)}（${event.edge.weight}），加入 ${event.node}・${nodes[event.node]}。`;
+      } else {
+        document.getElementById("animation-status").textContent =
+          `從 ${event.node}・${nodes[event.node]} 開始，將它加入生成樹。`;
+      }
+      animationIndex += 1;
+
+      if (animationIndex === animationEvents.length) {
+        updateAnimation();
+        stopAnimation();
+        document.getElementById("animation-status").textContent =
+          `建構完成！從 ${startNode.value} 出發，最小總權重為 ${calculatePrim(startNode.value).total}。`;
+      }
+    }
+
+    function resetAnimation() {
+      stopAnimation();
+      animationIndex = 0;
+      updateAnimation();
+      document.getElementById("animation-status").textContent =
+        "準備就緒，按下「開始播放」或「單步前進」查看建構過程。";
+    }
+
+    function recalculate() {
+      stopAnimation();
+      const start = startNode.value;
+      resultStart.value = start;
+      const result = calculatePrim(start);
+      animationEvents = result.events;
+      animationIndex = 0;
+      renderResult(result);
+      updateAnimation();
+      document.getElementById("animation-status").textContent =
+        `起點：${start}・${nodes[start]}。按下播放或單步前進，查看如何選取 5 條道路。`;
+    }
+
+    playButton.addEventListener("click", () => {
+      if (animationTimer !== null) {
+        stopAnimation();
+        document.getElementById("animation-status").textContent = "動畫已暫停。";
+        return;
+      }
+      if (animationIndex >= animationEvents.length) {
+        resetAnimation();
+      }
+      playButton.textContent = "⏸ 暫停";
+      advanceAnimation();
+      if (animationIndex < animationEvents.length) {
+        animationTimer = window.setInterval(advanceAnimation, 1000);
+      }
+    });
+    document.getElementById("step-button").addEventListener("click", () => {
+      stopAnimation();
+      advanceAnimation();
+    });
+    document.getElementById("reset-button").addEventListener("click", resetAnimation);
+    startNode.addEventListener("change", recalculate);
+    resultStart.addEventListener("change", () => {
+      startNode.value = resultStart.value;
+      recalculate();
+    });
+
+    recalculate();
+  </script>
+</body>
+</html>
